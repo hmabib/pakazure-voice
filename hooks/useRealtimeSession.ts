@@ -11,6 +11,8 @@ interface RealtimeSessionRequest {
 
 interface RealtimeSessionBootstrap {
   client_secret?: { value?: string };
+  model?: string;
+  voice?: string;
   capabilities?: {
     videoInput?: boolean;
     videoMode?: string;
@@ -91,9 +93,11 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
           setStatus("thinking");
           break;
         case "response.audio.delta":
+        case "response.output_audio.delta":
           setStatus("speaking");
           break;
-        case "response.audio_transcript.done": {
+        case "response.audio_transcript.done":
+        case "response.output_audio_transcript.done": {
           const text = (msg.transcript as string) || "";
           if (text.trim()) addTranscript({ role: "assistant", text });
           break;
@@ -220,10 +224,13 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
 
       const audio = document.createElement("audio");
       audio.autoplay = true;
+      audio.setAttribute("playsinline", "true");
       audioRef.current = audio;
       pc.ontrack = (e) => {
-        audio.srcObject = e.streams[0];
-        audio.play().catch(() => undefined);
+        const [remoteStream] = e.streams;
+        if (!remoteStream) return;
+        audio.srcObject = remoteStream;
+        void audio.play().catch(() => undefined);
       };
 
       const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -270,19 +277,31 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
       dc.onmessage = handleServerEvent;
-      dc.onopen = () => {
+
+      const configureSession = () => {
+        if (dc.readyState !== "open") return;
+
         sendEvent({
           type: "session.update",
           session: {
-            modalities: ["audio", "text"],
+            type: "realtime",
+            model: data.model || "gpt-realtime",
             instructions: settings.systemPrompt,
-            voice: settings.voice || "shimmer",
-            input_audio_transcription: { model: "whisper-1" },
-            turn_detection: {
-              type: "server_vad",
-              silence_duration_ms: 600,
-              threshold: 0.5,
-              prefix_padding_ms: 300,
+            output_modalities: ["audio", "text"],
+            audio: {
+              input: {
+                turn_detection: {
+                  type: "server_vad",
+                  silence_duration_ms: 600,
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  create_response: true,
+                },
+                transcription: { model: "whisper-1" },
+              },
+              output: {
+                voice: settings.voice || data.voice || "marin",
+              },
             },
             tools: enabledToolDefinitions,
             tool_choice: enabledToolDefinitions.length > 0 ? "auto" : "none",
@@ -290,10 +309,12 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         });
       };
 
+      dc.onopen = configureSession;
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpRes = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview", {
+      const sdpRes = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${ephemeralKey}`,
@@ -308,6 +329,7 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         sdp: await sdpRes.text(),
       };
       await pc.setRemoteDescription(answer);
+      configureSession();
       setStatus("connected");
     } catch (err) {
       console.error("Connection error:", err);

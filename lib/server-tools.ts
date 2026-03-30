@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { getPortDashboard, getPortDomain } from "@/lib/port-stats";
 
 function requireEnv(name: string): string {
@@ -211,22 +210,42 @@ export async function queryPortStats(query: string, domain?: string) {
 }
 
 export async function createRealtimeSession({ enableVideo = false }: { enableVideo?: boolean } = {}) {
-  const client = new OpenAI({ apiKey: requireEnv("OPENAI_API_KEY") });
-  const model = (process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview") as
-    | "gpt-4o-realtime-preview"
-    | "gpt-4o-realtime-preview-2024-10-01"
-    | "gpt-4o-realtime-preview-2024-12-17"
-    | "gpt-4o-mini-realtime-preview"
-    | "gpt-4o-mini-realtime-preview-2024-12-17";
+  const apiKey = requireEnv("OPENAI_API_KEY");
+  const model = process.env.OPENAI_REALTIME_MODEL || "gpt-realtime";
+  const voice = process.env.OPENAI_REALTIME_VOICE || "marin";
 
   const videoInputEnabled = process.env.OPENAI_REALTIME_ENABLE_VIDEO === "true";
-  const session = await client.beta.realtime.sessions.create({
-    model,
-    voice: "echo",
+  const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      session: {
+        type: "realtime",
+        model,
+        audio: {
+          output: {
+            voice,
+          },
+        },
+      },
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
   });
+
+  if (!response.ok) {
+    throw new Error(`Impossible de créer le client secret realtime (${response.status})`);
+  }
+
+  const session = await response.json();
 
   return {
     ...session,
+    model,
+    voice,
     capabilities: {
       videoInput: enableVideo && videoInputEnabled,
       videoMode: enableVideo && videoInputEnabled ? "camera-feed" : "architecture-only",
