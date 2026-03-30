@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getPortDashboard } from "@/lib/port-stats";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -87,12 +88,15 @@ export async function searchWeb(query: string) {
 }
 
 export async function getPortStatus() {
+  const dashboard = await getPortDashboard();
   return {
     port: "Port Autonome de Kribi (PAK)",
-    status: "Opérationnel",
-    source: "Connecteur métier à brancher",
-    note: "Ce module est prêt côté UI, mais nécessite encore l’intégration API métier réelle pour exposer des données opérationnelles vérifiées.",
-    last_updated: new Date().toISOString(),
+    status: dashboard.configured ? "Connecté" : "Fallback",
+    source: dashboard.source,
+    note: dashboard.configured
+      ? "Les statistiques portuaires sont disponibles côté serveur et consultables par l'assistant."
+      : "Le panneau stats fonctionne, mais certaines variables Supabase restent à configurer pour la donnée réelle.",
+    last_updated: dashboard.generatedAt,
   };
 }
 
@@ -147,34 +151,38 @@ export async function querySoftis(query: string) {
   const baseUrl = process.env.SOFTIS_API_BASE_URL;
   const token = process.env.SOFTIS_API_TOKEN;
 
-  if (!baseUrl || !token) {
+  if (baseUrl && token) {
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(15000),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Softis API a échoué (${res.status})`);
+    }
+
+    const data = await res.json();
     return {
-      configured: false,
-      note: "SOFTIS_API_BASE_URL et/ou SOFTIS_API_TOKEN non configurés. Le slot sécurisé est prêt côté serveur.",
+      configured: true,
+      backend: "softis-api",
       query,
+      data,
     };
   }
 
-  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/query`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(15000),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Softis API a échoué (${res.status})`);
-  }
-
-  const data = await res.json();
+  const dashboard = await getPortDashboard();
   return {
-    configured: true,
+    configured: false,
+    backend: "supabase-port-stats-fallback",
+    note: "SOFTIS_API_BASE_URL et/ou SOFTIS_API_TOKEN non configurés. Réponse fournie via le backend stats Supabase déjà branché.",
     query,
-    data,
+    data: dashboard,
   };
 }
 
