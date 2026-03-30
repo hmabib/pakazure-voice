@@ -211,8 +211,8 @@ export async function queryPortStats(query: string, domain?: string) {
 
 export async function createRealtimeSession({ enableVideo = false }: { enableVideo?: boolean } = {}) {
   const apiKey = requireEnv("OPENAI_API_KEY");
-  const model = process.env.OPENAI_REALTIME_MODEL || "gpt-realtime";
-  const voice = process.env.OPENAI_REALTIME_VOICE || "marin";
+  const model = process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview";
+  const voice = process.env.OPENAI_REALTIME_VOICE || "alloy";
 
   const videoInputEnabled = process.env.OPENAI_REALTIME_ENABLE_VIDEO === "true";
   const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
@@ -223,13 +223,8 @@ export async function createRealtimeSession({ enableVideo = false }: { enableVid
     },
     body: JSON.stringify({
       session: {
-        type: "realtime",
         model,
-        audio: {
-          output: {
-            voice,
-          },
-        },
+        voice,
       },
     }),
     cache: "no-store",
