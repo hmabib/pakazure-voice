@@ -25,7 +25,7 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
   const [volume, setVolume] = useState(0);
   const [videoEnabledInSession, setVideoEnabledInSession] = useState(false);
   const [videoSupportMode, setVideoSupportMode] = useState<"camera-feed" | "architecture-only">("architecture-only");
-  const [videoFallbackReason, setVideoFallbackReason] = useState<string | null>(settings.realtimeVideo.fallbackReason || null);
+  const [videoFallbackReason, setVideoFallbackReason] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [localVideoStream, setLocalVideoStream] = useState<MediaStream | null>(null);
 
@@ -255,15 +255,12 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : "Accès webcam refusé ou indisponible";
-          setCameraError(message);
-          addTranscript({
-            role: "tool",
-            toolName: "camera",
-            text: `⚠️ Webcam non disponible: ${message}`,
-          });
+          console.warn("Webcam non disponible:", message);
+          setCameraError("Impossible d’accéder à la caméra pour le moment.");
         }
       } else {
         cleanupLocalVideo();
+        setCameraError(null);
         setVideoEnabledInSession(false);
         setVideoSupportMode("architecture-only");
         setVideoFallbackReason(null);
@@ -298,14 +295,11 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         });
 
         if (settings.realtimeVideo.enabled) {
-          addTranscript({
-            role: "tool",
-            toolName: "camera",
-            text:
-              resolvedVideoMode === "camera-feed"
-                ? "📷 Webcam activée pour cette session realtime."
-                : `📷 Webcam activée côté UI/état local, mais non injectée au modèle: ${resolvedFallbackReason}`,
-          });
+          console.info(
+            resolvedVideoMode === "camera-feed"
+              ? "Webcam active dans la session realtime."
+              : `Webcam active côté UI uniquement. ${resolvedFallbackReason}`
+          );
         }
       };
 
@@ -354,6 +348,7 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
     micTrackRef.current = null;
     setStatus("disconnected");
     setVolume(0);
+    setCameraError(null);
     setVideoEnabledInSession(false);
   }, [cleanupLocalVideo]);
 

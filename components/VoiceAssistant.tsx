@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   Activity,
-  AlertTriangle,
   Camera,
   ChevronRight,
   LineChart,
@@ -102,14 +101,10 @@ function SideSheet({
 function VideoPreviewCard({
   stream,
   mirrored,
-  mode,
-  fallbackReason,
   cameraError,
 }: {
   stream: MediaStream | null;
   mirrored: boolean;
-  mode: "camera-feed" | "architecture-only";
-  fallbackReason: string | null;
   cameraError: string | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -124,13 +119,11 @@ function VideoPreviewCard({
     <div className="panel-shell flex min-h-[220px] w-full flex-col overflow-hidden rounded-[1.75rem] p-4 sm:min-h-[260px]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/70">Realtime webcam</p>
-          <h3 className="mt-2 text-sm font-semibold text-white sm:text-base">
-            {mode === "camera-feed" ? "Flux webcam prêt pour la session" : "Webcam locale avec fallback contrôlé"}
-          </h3>
+          <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/70">Mode vision</p>
+          <h3 className="mt-2 text-sm font-semibold text-white sm:text-base">Webcam active</h3>
         </div>
         <span className="rounded-full border border-white/10 bg-slate-950/60 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-slate-300">
-          {stream ? "On" : "Standby"}
+          {stream ? "Live" : "En attente"}
         </span>
       </div>
 
@@ -144,22 +137,9 @@ function VideoPreviewCard({
         )}
       </div>
 
-      {(fallbackReason || cameraError) && (
-        <div className="mt-4 space-y-2">
-          {fallbackReason && (
-            <div className="rounded-2xl border border-amber-300/12 bg-amber-400/[0.05] px-3 py-3 text-xs leading-6 text-slate-200">
-              <div className="mb-1 flex items-center gap-2 text-amber-100">
-                <AlertTriangle size={14} />
-                <span className="uppercase tracking-[0.24em]">Fallback vision</span>
-              </div>
-              <p className="break-words">{fallbackReason}</p>
-            </div>
-          )}
-          {cameraError && (
-            <div className="rounded-2xl border border-red-300/12 bg-red-400/[0.05] px-3 py-3 text-xs leading-6 text-red-100">
-              <p className="break-words">{cameraError}</p>
-            </div>
-          )}
+      {cameraError && (
+        <div className="mt-4 rounded-2xl border border-red-300/12 bg-red-400/[0.05] px-3 py-3 text-xs leading-6 text-red-100">
+          <p className="break-words">{cameraError}</p>
         </div>
       )}
     </div>
@@ -198,9 +178,6 @@ export default function VoiceAssistant() {
     sendText,
     clearTranscript,
     localVideoStream,
-    videoEnabledInSession,
-    videoSupportMode,
-    videoFallbackReason,
     cameraError,
   } = useRealtimeSession(settings, tools);
 
@@ -208,23 +185,32 @@ export default function VoiceAssistant() {
   const isConnecting = status === "connecting";
   const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.idle;
   const lastTranscript = transcript.at(-1);
-  const showVideoCard = settings.realtimeVideo.enabled || Boolean(localVideoStream) || Boolean(videoFallbackReason) || Boolean(cameraError);
+  const isVisionMode = settings.realtimeVideo.enabled;
+  const showVideoCard = isVisionMode || Boolean(localVideoStream) || Boolean(cameraError);
+  const experienceModeLabel = isVisionMode ? "Mode vision" : "Mode voix";
+  const experienceHeadline = isVisionMode ? "Camara Boto voit, écoute et guide l’action." : "Camara Boto écoute, répond et guide l’action.";
+  const experienceDescription = isVisionMode
+    ? localVideoStream
+      ? "La webcam est prête. Vous pouvez parler ou montrer ce qu’il faut analyser."
+      : "Activez la session puis autorisez la caméra pour passer en expérience vision."
+    : statusInfo.text;
 
   const metrics = useMemo(
     () => [
+      { label: "Mode", value: isVisionMode ? "Vision" : "Voix" },
       { label: "Session", value: isConnected ? "Active" : status === "error" ? "Erreur" : "Standby" },
       { label: "Volume", value: `${Math.round(Math.min(100, volume * 100))}%` },
       { label: "Messages", value: String(transcript.length).padStart(2, "0") },
-      ...(settings.realtimeVideo.enabled
+      ...(isVisionMode
         ? [
             {
               label: "Caméra",
-              value: videoEnabledInSession ? "LLM" : videoSupportMode === "camera-feed" ? "Prête" : "Fallback",
+              value: localVideoStream ? "Active" : cameraError ? "Indisponible" : "Prête",
             },
           ]
         : []),
     ],
-    [isConnected, status, volume, transcript.length, settings.realtimeVideo.enabled, videoEnabledInSession, videoSupportMode]
+    [cameraError, isConnected, isVisionMode, localVideoStream, status, transcript.length, volume]
   );
 
   useEffect(() => {
@@ -386,26 +372,17 @@ export default function VoiceAssistant() {
                       ))}
                     </div>
 
-                    <h2 className="max-w-2xl text-2xl font-semibold leading-tight text-white sm:text-4xl">
-                      Camara Boto écoute, répond et guide l’action.
+                    <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-cyan-100">
+                      <Camera size={14} />
+                      {experienceModeLabel}
+                    </div>
+
+                    <h2 className="mt-4 max-w-2xl text-2xl font-semibold leading-tight text-white sm:text-4xl">
+                      {experienceHeadline}
                     </h2>
-                    <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">{statusInfo.text}</p>
+                    <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">{experienceDescription}</p>
 
-                    {settings.realtimeVideo.enabled && (
-                      <div className="mt-4 w-full max-w-2xl rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.05] px-4 py-3 text-left text-sm leading-6 text-slate-200">
-                        <div className="flex flex-wrap items-center gap-2 text-cyan-100">
-                          <Camera size={15} />
-                          <span className="text-[11px] uppercase tracking-[0.24em]">Webcam optionnelle activée</span>
-                        </div>
-                        <p className="mt-2 break-words">
-                          {videoEnabledInSession
-                            ? "La session tente d’envoyer audio + webcam au canal realtime."
-                            : videoFallbackReason || "La capture webcam reste locale tant que le support vision realtime n’est pas confirmé."}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                    <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
                       <button
                         onClick={handlePrimaryAction}
                         disabled={isConnecting}
@@ -417,6 +394,22 @@ export default function VoiceAssistant() {
                           : isMuted
                           ? "Réactiver le micro"
                           : "Demander un briefing"}
+                      </button>
+
+                      <button
+                        onClick={() => setShowInsights(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+                      >
+                        <Sparkles size={18} />
+                        Dataviz
+                      </button>
+
+                      <button
+                        onClick={() => setShowPortStats(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+                      >
+                        <LineChart size={18} />
+                        Stats portuaires
                       </button>
 
                       {isConnected && (
@@ -463,6 +456,30 @@ export default function VoiceAssistant() {
                     </div>
                   </div>
                 )}
+
+                <div className="mt-6 grid gap-3 lg:grid-cols-2">
+                  <button
+                    onClick={() => runDataviz("Génère une dataviz PAKAZURE sur les KPI opérationnels prioritaires du jour.")}
+                    className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20"
+                  >
+                    <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-2.5 text-cyan-100">
+                      <Sparkles size={18} />
+                    </div>
+                    <p className="text-sm font-semibold text-white">Session dataviz</p>
+                    <p className="mt-2 break-words text-sm text-slate-400">Ouvrir la visualisation et générer un point clé en un clic.</p>
+                  </button>
+
+                  <button
+                    onClick={() => setShowPortStats(true)}
+                    className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20"
+                  >
+                    <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-2.5 text-cyan-100">
+                      <LineChart size={18} />
+                    </div>
+                    <p className="text-sm font-semibold text-white">Lecture stats portuaires</p>
+                    <p className="mt-2 break-words text-sm text-slate-400">Retrouver la vue hebdo, l’année et les détails métier sans quitter l’écran principal.</p>
+                  </button>
+                </div>
               </div>
 
               {showVideoCard && (
@@ -470,8 +487,6 @@ export default function VoiceAssistant() {
                   <VideoPreviewCard
                     stream={localVideoStream}
                     mirrored={settings.realtimeVideo.previewMirrored}
-                    mode={videoSupportMode}
-                    fallbackReason={videoFallbackReason}
                     cameraError={cameraError}
                   />
                 </div>

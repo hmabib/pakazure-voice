@@ -175,9 +175,9 @@ export default function SettingsModal({ settings, onSave, onClose }: Props) {
                   <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/40 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-cyan-100">
                     <Video size={12} /> Realtime webcam
                   </div>
-                  <p className="mt-3 text-sm font-medium text-white">Envoyer aussi la webcam au LLM</p>
+                  <p className="mt-3 text-sm font-medium text-white">Activer la webcam</p>
                   <p className="mt-1 text-xs leading-5 text-slate-300">
-                    Option facultative, désactivée par défaut. Prépare la session realtime, la capture locale et les garde-fous si la vision temps réel n’est pas encore pleinement activée côté modèle.
+                    Passe l’expérience en mode vision avec aperçu caméra dans l’interface.
                   </p>
                 </div>
                 <Toggle
@@ -189,13 +189,9 @@ export default function SettingsModal({ settings, onSave, onClose }: Props) {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Statut</p>
-                  <p className="mt-2 text-sm font-medium text-white">{form.realtimeVideo.enabled ? "Webcam demandée" : "Webcam désactivée"}</p>
+                  <p className="mt-2 text-sm font-medium text-white">{form.realtimeVideo.enabled ? "Mode vision activé" : "Mode voix actif"}</p>
                   <p className="mt-1 text-xs leading-5 text-slate-400">
-                    {form.realtimeVideo.enabled
-                      ? form.realtimeVideo.mode === "camera-feed"
-                        ? "Le flux camera-feed sera tenté dans la session realtime."
-                        : "Architecture prête avec fallback si l’injection vidéo au modèle n’est pas supportée."
-                      : "Aucune capture vidéo ne sera demandée au device."}
+                    {form.realtimeVideo.enabled ? "L’interface affichera la webcam dès que l’accès caméra est accordé." : "Aucune capture vidéo ne sera demandée."}
                   </p>
                 </div>
 
@@ -218,12 +214,6 @@ export default function SettingsModal({ settings, onSave, onClose }: Props) {
                 </div>
               </div>
 
-              {form.realtimeVideo.fallbackReason && (
-                <div className="rounded-2xl border border-amber-300/12 bg-amber-400/[0.05] p-3">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-amber-100">Garde-fou / fallback</p>
-                  <p className="mt-2 text-xs leading-6 text-slate-200">{form.realtimeVideo.fallbackReason}</p>
-                </div>
-              )}
             </div>
           </section>
 
