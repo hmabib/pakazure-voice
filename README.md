@@ -17,6 +17,8 @@ Assistant vocal temps réel Next.js / Vercel avec identité visuelle premium PAK
 - Filtrage réel des tools activés côté session Realtime.
 - Amélioration du hook audio avec gestion plus propre de l’`AudioContext` et du volume analyser.
 - Nettoyage de plusieurs incohérences UI / états liés à la session.
+- Ajout d’un bloc léger **stats portuaires** alimenté par routes serveur sécurisées côté Supabase REST.
+- Ajout de réglages avatar fins : bouche, yeux, intensité, taille, centrage en parole, transcript sous avatar.
 
 ## Setup
 
@@ -35,6 +37,19 @@ BRAVE_SEARCH_API_KEY=...
 GEMINI_API_KEY=...
 SOFTIS_API_BASE_URL=https://...
 SOFTIS_API_TOKEN=...
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_PORT_STATS_VIEW_DASHBOARD=port_stats_dashboard
+SUPABASE_PORT_STATS_VIEW_DASHBOARD_WEEKLY=port_stats_dashboard_weekly
+SUPABASE_PORT_STATS_VIEW_DASHBOARD_YEARLY=port_stats_dashboard_yearly
+SUPABASE_PORT_STATS_VIEW_DOMAIN=port_stats_domain_metrics
+SUPABASE_PORT_STATS_VIEW_ESCALES=port_stats_escales
+SUPABASE_PORT_STATS_VIEW_MARCHANDISES=port_stats_marchandises
+SUPABASE_PORT_STATS_VIEW_CONTENEURS=port_stats_conteneurs
+SUPABASE_PORT_STATS_VIEW_FINANCE=port_stats_finance
+SUPABASE_PORT_STATS_VIEW_CAMIONS=port_stats_camions
+SUPABASE_PORT_STATS_VIEW_PRODUCTIVITE=port_stats_productivite
+SUPABASE_PORT_STATS_VIEW_PARTS_LIGNE=port_stats_parts_ligne
 ```
 
 ## Sécurité des APIs
@@ -47,8 +62,19 @@ Connecteurs actuellement branchés côté serveur :
 - **Brave Search** via `/api/tools`
 - **Gemini Dataviz** via `/api/tools`
 - **Softis** via `/api/tools` avec token backend
+- **Supabase REST** via `/api/port-stats/dashboard` et `/api/port-stats/[domain]`
 
 Les outils côté navigateur appellent uniquement la route serveur sécurisée, jamais les fournisseurs directement.
+
+### Schéma logique recommandé pour les stats portuaires
+
+Pour éviter de recopier un mapping métier incohérent dans le front, l’app attend des **vues normalisées** côté Supabase/Postgres :
+
+- `dashboard_weekly` / `dashboard_yearly` ou une vue unique dashboard avec `period_scope`
+- une vue domaine générique ou des vues dédiées par domaine
+- colonnes normalisées : `domain`, `metric_key`, `metric_label`, `value`, `unit`, `trend`, `comparison_label`
+
+Ainsi, l’architecture UI consomme un JSON stable, même si les tables sources réelles sont plus complexes.
 
 ## Compatibilité
 

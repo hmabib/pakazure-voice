@@ -6,87 +6,92 @@ import {
   Activity,
   Bot,
   ChevronRight,
-  DatabaseZap,
+  LineChart,
+  Menu,
   Mic,
   MicOff,
   PhoneOff,
-  Radar,
-  Search,
   Send,
   Settings,
   Sparkles,
   Waves,
-  Wrench,
+  X,
 } from "lucide-react";
 import CamaraBotoAvatar from "./CamaraBotoAvatar";
 import TranscriptPanel from "./TranscriptPanel";
 import ToolsPanel from "./ToolsPanel";
 import SettingsModal from "./SettingsModal";
+import DatavizPanel from "./DatavizPanel";
+import PortStatsPanel from "./PortStatsPanel";
 import { useRealtimeSession } from "@/hooks/useRealtimeSession";
 import { DEFAULT_TOOLS } from "@/lib/tools";
 import { DEFAULT_SETTINGS } from "@/lib/types";
-import type { Settings as SettingsType, Tool } from "@/lib/types";
+import type { PortDashboardPayload, Settings as SettingsType, Tool } from "@/lib/types";
 
-const STATUS_LABELS: Record<string, { text: string; tone: string; chip: string }> = {
-  idle: { text: "Système prêt. Lancez une session pour commencer.", tone: "text-slate-300", chip: "bg-slate-800 text-slate-300" },
-  connecting: { text: "Ouverture du canal temps réel en cours.", tone: "text-amber-200", chip: "bg-amber-400/15 text-amber-100" },
-  connected: { text: "Canal établi, attente d'instruction vocale ou texte.", tone: "text-cyan-100", chip: "bg-cyan-400/15 text-cyan-100" },
-  listening: { text: "Capture micro active, le système écoute.", tone: "text-emerald-200", chip: "bg-emerald-400/15 text-emerald-100" },
-  thinking: { text: "Analyse en cours et orchestration des outils.", tone: "text-amber-200", chip: "bg-amber-400/15 text-amber-100" },
-  speaking: { text: "Réponse audio en cours de diffusion.", tone: "text-cyan-100", chip: "bg-cyan-400/15 text-cyan-100" },
-  error: { text: "Incident détecté sur la session courante.", tone: "text-red-200", chip: "bg-red-400/15 text-red-100" },
-  disconnected: { text: "Session arrêtée. Vous pouvez relancer immédiatement.", tone: "text-slate-400", chip: "bg-slate-800 text-slate-300" },
+const STATUS_LABELS: Record<string, { text: string; chip: string }> = {
+  idle: { text: "Système prêt. Lancez une session pour commencer.", chip: "bg-slate-900/80 text-slate-300 border-white/10" },
+  connecting: { text: "Ouverture du canal temps réel en cours.", chip: "bg-amber-400/10 text-amber-100 border-amber-300/20" },
+  connected: { text: "Canal établi, en attente d'instruction vocale ou texte.", chip: "bg-cyan-400/10 text-cyan-100 border-cyan-300/20" },
+  listening: { text: "Camara Boto écoute votre demande.", chip: "bg-emerald-400/10 text-emerald-100 border-emerald-300/20" },
+  thinking: { text: "Analyse et orchestration en cours.", chip: "bg-amber-400/10 text-amber-100 border-amber-300/20" },
+  speaking: { text: "Réponse audio en diffusion.", chip: "bg-cyan-400/10 text-cyan-100 border-cyan-300/20" },
+  error: { text: "Incident détecté sur la session courante.", chip: "bg-red-400/10 text-red-100 border-red-300/20" },
+  disconnected: { text: "Session arrêtée. Relancez quand vous voulez.", chip: "bg-slate-900/80 text-slate-300 border-white/10" },
 };
 
-const actionCards = [
-  {
-    title: "Lancer analyse portuaire",
-    description: "Prépare un point de situation opérations / escales / congestion.",
-    icon: Radar,
-    prompt: "Prépare un briefing portuaire opérationnel pour Kribi avec priorités et risques du jour.",
-    tag: "Priorité 1",
-  },
-  {
-    title: "Interroger Softis",
-    description: "Ouvre un flux d'analyse métier via les données internes disponibles.",
-    icon: DatabaseZap,
-    prompt: "Analyse les données Softis disponibles et résume les points de décision opérationnels.",
-    tag: "Décision",
-  },
-  {
-    title: "Générer dataviz",
-    description: "Crée un brief prêt pour une vue KPI ou tableau d'exploitation.",
-    icon: Sparkles,
-    prompt: "Génère une visualisation synthétique des KPI opérationnels prioritaires du jour.",
-    tag: "Pilotage",
-  },
-  {
-    title: "Veille web & météo",
-    description: "Croise météo, web et contexte logistique avant décision.",
-    icon: Search,
-    prompt: "Croise météo et informations web utiles pour les opérations portuaires de Kribi aujourd'hui.",
-    tag: "Contexte",
-  },
-];
-
 const quickPrompts = [
-  "Donne-moi un briefing météo pour Kribi",
-  "Résume l'état opérationnel du port",
+  "Prépare un briefing opérationnel priorisé du jour.",
+  "Donne-moi un briefing météo pour Kribi.",
+  "Résume l'état opérationnel du port.",
   "Quelles actions prioritaires aujourd'hui ?",
-  "Prépare une synthèse logistique du jour",
 ];
 
 function PakazureMark() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,0.15)]">
-        <Bot size={20} className="text-cyan-200" />
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,0.12)]">
+        <Bot size={19} className="text-cyan-200" />
       </div>
       <div>
         <p className="text-[11px] uppercase tracking-[0.42em] text-cyan-200/75">PAKAZURE Voice Ops</p>
-        <h1 className="mt-1 text-lg font-semibold text-white sm:text-xl">Cockpit vocal opérationnel</h1>
+        <h1 className="mt-1 text-lg font-semibold text-white sm:text-xl">Camara Boto</h1>
       </div>
     </div>
+  );
+}
+
+function SideSheet({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+
+  return (
+    <>
+      <button className="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-sm" onClick={onClose} aria-label="Fermer" />
+      <div className="slide-in-right fixed right-0 top-0 z-40 flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-slate-950/96 shadow-[0_0_60px_rgba(8,15,34,0.75)]">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.34em] text-cyan-200/70">PAKAZURE panel</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
+            <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+          </div>
+          <button onClick={onClose} className="rounded-2xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:border-cyan-300/20 hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+      </div>
+    </>
   );
 }
 
@@ -95,12 +100,19 @@ export default function VoiceAssistant() {
     ...DEFAULT_SETTINGS,
     voice: "echo",
     systemPrompt:
-      "Tu es Camara Boto, assistant IA premium de PAKAZURE pour le Port Autonome de Kribi. Tu réponds toujours en français, avec clarté, autorité calme et sens du service. Tu peux piloter des outils comme météo, recherche, dataviz, statut portuaire et futures APIs métier.",
+      "Tu es Camara Boto, la voix opérationnelle de PAKAZURE pour le Port Autonome de Kribi. Tu réponds toujours en français, de manière naturelle, directe, calme et utile. Va droit au point, puis développe seulement si nécessaire. Si l'utilisateur pose une question sur les statistiques portuaires, utilise les informations disponibles du panneau stats portuaires et des routes API associées pour répondre naturellement. Si l'utilisateur évoque Softis, utilise query_softis. Si l'utilisateur demande une visualisation, utilise generate_gemini_dataviz puis décris clairement ce qu'elle montre. Si une recherche web est utile, utilise search_web. Ton rôle est d'aider à décider, expliquer et synthétiser sans jargon inutile.",
   });
   const [tools, setTools] = useState<Tool[]>(DEFAULT_TOOLS);
   const [showTools, setShowTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCommandCenter, setShowCommandCenter] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
   const [textInput, setTextInput] = useState("");
+  const [vizLoading, setVizLoading] = useState(false);
+  const [vizData, setVizData] = useState<Record<string, unknown> | null>(null);
+  const [portStats, setPortStats] = useState<PortDashboardPayload | null>(null);
+  const [portStatsLoading, setPortStatsLoading] = useState(true);
   const textRef = useRef<HTMLInputElement>(null);
 
   const { status, transcript, isMuted, volume, connect, disconnect, toggleMute, sendText, clearTranscript } =
@@ -110,24 +122,55 @@ export default function VoiceAssistant() {
   const isConnecting = status === "connecting";
   const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.idle;
   const enabledTools = tools.filter((tool) => tool.enabled).length;
+  const lastTranscript = transcript.at(-1);
 
   const metrics = useMemo(
     () => [
       { label: "Session", value: isConnected ? "Active" : status === "error" ? "Erreur" : "Standby" },
       { label: "Volume", value: `${Math.round(Math.min(100, volume * 100))}%` },
       { label: "Messages", value: String(transcript.length).padStart(2, "0") },
-      { label: "Outils actifs", value: `${enabledTools}/${tools.length}` },
     ],
-    [enabledTools, isConnected, status, volume, transcript.length, tools.length]
+    [isConnected, status, volume, transcript.length]
   );
 
-  const handleStartOrMute = () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPortStats = async () => {
+      setPortStatsLoading(true);
+      try {
+        const response = await fetch("/api/port-stats/dashboard", { cache: "no-store" });
+        if (!response.ok) throw new Error("Impossible de charger les stats portuaires");
+        const payload = (await response.json()) as PortDashboardPayload;
+        if (!cancelled) setPortStats(payload);
+      } catch {
+        if (!cancelled) setPortStats(null);
+      } finally {
+        if (!cancelled) setPortStatsLoading(false);
+      }
+    };
+
+    loadPortStats();
+    const interval = window.setInterval(loadPortStats, 120000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const handlePrimaryAction = () => {
     if (["idle", "disconnected", "error"].includes(status)) {
       connect();
       return;
     }
 
-    if (isConnected) toggleMute();
+    if (isConnected && isMuted) {
+      toggleMute();
+      return;
+    }
+
+    sendText("Prépare un briefing opérationnel priorisé du jour.");
   };
 
   const handleSendText = () => {
@@ -138,16 +181,36 @@ export default function VoiceAssistant() {
 
   const queuePrompt = (prompt: string) => {
     setTextInput(prompt);
-    textRef.current?.focus();
+    setShowCommandCenter(false);
+    setTimeout(() => textRef.current?.focus(), 0);
   };
 
-  const runPrimaryAction = () => {
-    if (["idle", "disconnected", "error"].includes(status)) {
-      connect();
-      return;
+  const runDataviz = async (prompt: string) => {
+    setVizLoading(true);
+    setShowCommandCenter(false);
+    setShowInsights(true);
+    try {
+      const res = await fetch("/api/tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "generate_gemini_dataviz", args: { prompt } }),
+      });
+      const data = await res.json();
+      setVizData((data?.result?.visualization || null) as Record<string, unknown> | null);
+      if (isConnected) {
+        sendText(`J'ai généré une dataviz pour: ${prompt}. Résume-la, explique les points clés et relie-la au contexte opérationnel.`);
+      }
+    } catch {
+      setVizData({
+        title: "Dataviz indisponible",
+        summary: "La génération Gemini a échoué ou n'est pas encore configurée.",
+        chartType: "Fallback",
+        series: [],
+        insight: "Ajoute GEMINI_API_KEY dans Vercel pour activer cette fonction.",
+      });
+    } finally {
+      setVizLoading(false);
     }
-
-    queuePrompt("Prépare un briefing opérationnel priorisé du jour.");
   };
 
   const toggleTool = (name: string) => {
@@ -160,6 +223,9 @@ export default function VoiceAssistant() {
       if (event.code === "Escape") {
         setShowTools(false);
         setShowSettings(false);
+        setShowCommandCenter(false);
+        setShowTranscript(false);
+        setShowInsights(false);
       }
     };
 
@@ -168,313 +234,254 @@ export default function VoiceAssistant() {
   }, []);
 
   return (
-    <div className="grid-bg relative min-h-screen bg-[linear-gradient(180deg,#030817_0%,#07101f_100%)] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.08),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(46,109,180,0.12),transparent_30%)]" />
+    <div className="grid-bg relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#020611_0%,#06101f_62%,#071424_100%)] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(79,226,255,0.08),transparent_24%),radial-gradient(circle_at_50%_55%,rgba(46,109,180,0.10),transparent_38%),radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.03),transparent_18%)]" />
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1560px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="panel-shell mb-4 flex flex-col gap-4 px-5 py-5 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
-            <PakazureMark />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {metrics.map((metric) => (
-                <div key={metric.label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">{metric.label}</p>
-                  <p className="mt-2 text-base font-semibold text-white">{metric.value}</p>
-                </div>
-              ))}
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1380px] flex-col px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <header className="panel-shell flex items-center justify-between px-5 py-4 sm:px-6">
+          <PakazureMark />
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className={clsx("hidden rounded-full border px-3 py-2 text-[11px] uppercase tracking-[0.28em] sm:inline-flex", statusInfo.chip)}>
+              {status}
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className={clsx("rounded-full border px-4 py-2 text-xs uppercase tracking-[0.32em]", statusInfo.chip)}>{status}</div>
             <button
-              onClick={() => setShowTools(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/15"
+              onClick={() => setShowTranscript(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
+              aria-label="Ouvrir le journal"
             >
-              <Wrench size={16} />
-              Outils
+              <Waves size={17} />
+            </button>
+            <button
+              onClick={() => setShowCommandCenter(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:border-cyan-300/35"
+              aria-label="Ouvrir le centre de commande"
+            >
+              <Menu size={18} />
             </button>
             <button
               onClick={() => setShowSettings(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
+              aria-label="Ouvrir les paramètres"
             >
-              <Settings size={16} />
-              Paramètres
+              <Settings size={17} />
             </button>
           </div>
         </header>
 
-        <main className="grid flex-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-          <section className="grid gap-4">
-            <div className="panel-shell p-5 sm:p-6">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-start">
-                <div>
-                  <div className="mb-4 flex flex-wrap items-center gap-3">
-                    <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-cyan-100">
-                      Centre de décision vocal
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-slate-300">
-                      Kribi node
-                    </span>
-                  </div>
+        <main className="grid flex-1 gap-6 py-6 sm:py-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+          <section className="panel-shell relative flex w-full flex-col items-center px-6 py-8 text-center sm:px-10 sm:py-10 lg:px-16 lg:py-12">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent" />
 
-                  <h2 className="max-w-3xl text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                    Faites du centre écran la zone d’action, d’analyse et de décision.
-                  </h2>
-                  <p className={clsx("mt-4 max-w-2xl text-sm leading-7 text-slate-400", statusInfo.tone)}>{statusInfo.text}</p>
-
-                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                    <button
-                      onClick={runPrimaryAction}
-                      disabled={isConnecting}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/30 bg-cyan-400/15 px-6 py-4 text-sm font-medium text-cyan-50 transition hover:border-cyan-300/50 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Mic size={18} />
-                      {["idle", "disconnected", "error"].includes(status) ? "Démarrer session vocale" : "Préparer briefing prioritaire"}
-                    </button>
-
-                    <button
-                      onClick={() => queuePrompt("Lance une analyse opérationnelle complète à partir du contexte disponible.")}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
-                    >
-                      <Activity size={18} />
-                      Lancer analyse
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Canal session</p>
-                      <p className="mt-1 text-sm text-slate-400">Pilotage immédiat du flux vocal</p>
-                    </div>
-                    {isMuted && isConnected && (
-                      <span className="rounded-full bg-red-400/15 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-red-100">Micro coupé</span>
-                    )}
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button
-                      onClick={handleStartOrMute}
-                      disabled={isConnecting}
-                      className={clsx(
-                        "flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition",
-                        isConnecting && "cursor-not-allowed opacity-60",
-                        isMuted && isConnected && "border-red-300/25 bg-red-400/10 text-red-100",
-                        status === "listening" && "border-emerald-300/30 bg-emerald-400/12 text-emerald-100",
-                        status === "speaking" && "border-cyan-300/30 bg-cyan-400/12 text-cyan-100",
-                        (!isConnected || status === "connected" || status === "thinking") && !isMuted && "border-blue-300/20 bg-blue-400/10 text-blue-100"
-                      )}
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {["idle", "disconnected", "error"].includes(status) ? "Ouvrir le canal" : isMuted ? "Réactiver le micro" : "Couper le micro"}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-300/80">Action directe sur la session temps réel</p>
-                      </div>
-                      {isMuted || !isConnected ? <MicOff size={18} /> : <Mic size={18} />}
-                    </button>
-
-                    <button
-                      onClick={disconnect}
-                      disabled={!isConnected}
-                      className="flex items-center justify-between rounded-2xl border border-red-300/15 bg-red-400/10 px-4 py-4 text-left text-red-100 transition disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">Terminer la session</p>
-                        <p className="mt-1 text-xs text-red-100/70">Arrêt propre du canal en cours</p>
-                      </div>
-                      <PhoneOff size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-3">
+              <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-[11px] uppercase tracking-[0.32em] text-cyan-100">
+                Expérience vocale minimaliste
+              </span>
+              <span className={clsx("rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.28em]", statusInfo.chip)}>{status}</span>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-              <div className="panel-shell p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Actions métier</p>
-                    <h3 className="mt-2 text-xl font-semibold text-white">Modules prioritaires</h3>
-                  </div>
-                  <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-cyan-100">
-                    Cliquables
-                  </span>
-                </div>
+            <h2 className="max-w-3xl text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-[2.8rem]">
+              Un cockpit plus calme, centré sur l’écoute et la décision.
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">{statusInfo.text}</p>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  {actionCards.map(({ title, description, icon: Icon, prompt, tag }) => (
-                    <button
-                      key={title}
-                      onClick={() => queuePrompt(prompt)}
-                      className="group rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/[0.05]"
-                    >
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div className="rounded-2xl border border-cyan-300/15 bg-slate-900/80 p-3">
-                          <Icon size={18} className="text-cyan-200" />
-                        </div>
-                        <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.28em] text-slate-300">{tag}</span>
-                      </div>
-                      <p className="text-sm font-semibold text-white">{title}</p>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
-                      <div className="mt-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-cyan-100/80">
-                        Exécuter
-                        <ChevronRight size={14} className="transition group-hover:translate-x-1" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="my-8 flex w-full justify-center sm:my-10">
+              <CamaraBotoAvatar
+                status={status}
+                volume={volume}
+                avatarSettings={settings.avatar}
+                transcriptText={settings.avatar.showTranscriptBelowAvatar ? lastTranscript?.text : undefined}
+              />
+            </div>
 
-              <div className="panel-shell p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Saisie rapide</p>
-                    <h3 className="mt-2 text-lg font-semibold text-white">Prompt & envoi</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowTools(true)}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
-                  >
-                    Configurer
-                  </button>
-                </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={handlePrimaryAction}
+                disabled={isConnecting}
+                className="inline-flex min-w-[250px] items-center justify-center gap-3 rounded-2xl border border-cyan-300/30 bg-cyan-400/15 px-8 py-4 text-sm font-medium text-cyan-50 transition hover:border-cyan-300/50 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {["idle", "disconnected", "error"].includes(status) ? <Mic size={18} /> : isMuted ? <MicOff size={18} /> : <Sparkles size={18} />}
+                {["idle", "disconnected", "error"].includes(status)
+                  ? "Démarrer la session"
+                  : isMuted
+                    ? "Réactiver le micro"
+                    : "Lancer le briefing prioritaire"}
+              </button>
 
-                <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/70 p-2 shadow-inner shadow-black/20">
-                  <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowCommandCenter(true)}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
+              >
+                <ChevronRight size={16} />
+                Plus d’options
+              </button>
+            </div>
+
+            <div className="mt-8 grid w-full max-w-3xl gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 text-left">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">{metric.label}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{metric.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 w-full max-w-3xl rounded-[1.6rem] border border-white/8 bg-slate-950/40 p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex-1 rounded-2xl border border-white/8 bg-slate-950/55 p-2">
+                  <div className="flex gap-2">
                     <input
                       ref={textRef}
                       type="text"
                       value={textInput}
                       onChange={(event) => setTextInput(event.target.value)}
                       onKeyDown={(event) => event.key === "Enter" && handleSendText()}
-                      placeholder="Tapez un ordre, une analyse ou un briefing..."
-                      className="w-full bg-transparent px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none"
+                      placeholder="Envoyer une instruction texte à la session active"
+                      className="flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
                     />
                     <button
                       onClick={handleSendText}
                       disabled={!textInput.trim() || !isConnected}
-                      className="inline-flex items-center justify-center gap-2 rounded-[1rem] border border-cyan-300/20 bg-cyan-400/15 px-4 py-3 text-sm text-cyan-100 transition disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-cyan-100 transition hover:border-cyan-300/40 disabled:opacity-30"
                     >
-                      <Send size={15} />
-                      Envoyer à la session active
+                      <Send size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-2">
-                  {quickPrompts.map((prompt) => (
+                <div className="flex items-center justify-between gap-2 sm:justify-end">
+                  {isConnected && (
                     <button
-                      key={prompt}
-                      onClick={() => queuePrompt(prompt)}
-                      className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
-                    >
-                      <span>{prompt}</span>
-                      <ChevronRight size={15} className="text-slate-500" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="panel-shell flex min-h-[360px] flex-col overflow-hidden">
-              <TranscriptPanel transcript={transcript} onClear={clearTranscript} />
-            </div>
-          </section>
-
-          <aside className="grid gap-4">
-            <div className="panel-shell p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Avatar secondaire</p>
-                  <h3 className="mt-2 text-lg font-semibold text-white">Camara Boto</h3>
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-slate-300">
-                  Live
-                </span>
-              </div>
-              <CamaraBotoAvatar status={status} volume={volume} compact />
-            </div>
-
-            <div className="panel-shell p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">État outils</p>
-                  <h3 className="mt-2 text-lg font-semibold text-white">Disponibilité</h3>
-                </div>
-                <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-emerald-100">
-                  {enabledTools} actifs
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {tools.slice(0, 4).map((tool) => (
-                  <button
-                    key={tool.name}
-                    onClick={() => toggleTool(tool.name)}
-                    className="flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left transition hover:border-cyan-300/20"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-white">{tool.name.replace(/_/g, " ")}</p>
-                      <p className="mt-1 text-xs text-slate-400">{tool.description}</p>
-                    </div>
-                    <span
+                      onClick={toggleMute}
                       className={clsx(
-                        "ml-3 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.24em]",
-                        tool.enabled ? "bg-emerald-400/10 text-emerald-100" : "bg-slate-800 text-slate-400"
+                        "inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm transition",
+                        isMuted
+                          ? "border-red-300/20 bg-red-400/10 text-red-100"
+                          : "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
                       )}
                     >
-                      {tool.enabled ? "ON" : "OFF"}
-                    </span>
+                      {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+                      {isMuted ? "Micro coupé" : "Micro actif"}
+                    </button>
+                  )}
+                  <button
+                    onClick={disconnect}
+                    disabled={!isConnected}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:border-red-300/20 hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <PhoneOff size={16} />
+                    Arrêter
                   </button>
-                ))}
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Dataviz</p>
-                  <p className="mt-2 text-xl font-semibold text-white">Ready</p>
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Météo</p>
-                  <p className="mt-2 text-xl font-semibold text-white">Live</p>
                 </div>
               </div>
             </div>
 
-            <div className="panel-shell p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Pilotage synthèse</p>
-                  <h3 className="mt-2 text-lg font-semibold text-white">Signaux rapides</h3>
-                </div>
-                <Waves size={16} className="text-cyan-200" />
+            {!settings.avatar.showTranscriptBelowAvatar && (
+              <div className="mt-5 max-w-2xl rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/70">Dernier signal</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  {lastTranscript?.text || "Aucun échange pour le moment. Lancez la session, puis utilisez la voix ou le champ texte."}
+                </p>
               </div>
+            )}
+          </section>
 
-              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Canal</p>
-                  <p className="mt-2 text-xl font-semibold text-white">{status}</p>
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Dernier mode</p>
-                  <p className="mt-2 text-xl font-semibold text-white">{isMuted ? "Muted" : "Ouvert"}</p>
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Actions prêtes</p>
-                  <p className="mt-2 text-xl font-semibold text-white">{actionCards.length}</p>
-                </div>
-              </div>
-            </div>
+          <aside className="space-y-4 xl:sticky xl:top-6">
+            <PortStatsPanel data={portStats} loading={portStatsLoading} />
           </aside>
         </main>
       </div>
 
+      <SideSheet open={showCommandCenter} onClose={() => setShowCommandCenter(false)} title="Centre de commande" subtitle="Actions secondaires et fonctions avancées">
+        <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => queuePrompt("Prépare un briefing opérationnel priorisé du jour.")}
+              className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.04]"
+            >
+              <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-slate-900/80 p-2.5 text-cyan-200">
+                <Sparkles size={18} />
+              </div>
+              <p className="text-sm font-semibold text-white">Briefing prioritaire</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Prépare la synthèse d’exploitation du jour.</p>
+            </button>
+
+            <button
+              onClick={() => runDataviz("Génère une dataviz PAKAZURE sur les KPI opérationnels prioritaires du jour.")}
+              className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.04]"
+            >
+              <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-slate-900/80 p-2.5 text-cyan-200">
+                <LineChart size={18} />
+              </div>
+              <p className="text-sm font-semibold text-white">Générer une dataviz</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Produit une visualisation KPI dans le panneau dédié.</p>
+            </button>
+          </div>
+
+          <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Prompts rapides</p>
+                <p className="mt-1 text-sm text-slate-400">Suggestions discrètes pour éviter la surcharge visuelle.</p>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              {quickPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => queuePrompt(prompt)}
+                  className="flex items-center justify-between rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
+                >
+                  <span>{prompt}</span>
+                  <ChevronRight size={15} className="text-slate-500" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => {
+                setShowCommandCenter(false);
+                setShowTranscript(true);
+              }}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+            >
+              <Activity size={16} className="mb-2 text-cyan-200" />
+              <div className="font-medium">Ouvrir le journal</div>
+              <div className="mt-1 text-slate-400">Consulter tout l’historique de session.</div>
+            </button>
+            <button
+              onClick={() => {
+                setShowCommandCenter(false);
+                setShowTools(true);
+              }}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+            >
+              <Settings size={16} className="mb-2 text-cyan-200" />
+              <div className="font-medium">Gérer les outils</div>
+              <div className="mt-1 text-slate-400">{enabledTools} outil(s) actif(s) sur {tools.length}.</div>
+            </button>
+          </div>
+        </div>
+      </SideSheet>
+
+      <SideSheet open={showTranscript} onClose={() => setShowTranscript(false)} title="Journal de session" subtitle="Historique live des échanges et appels outils">
+        <div className="h-full min-h-[420px] overflow-hidden rounded-[1.6rem] border border-white/8 bg-slate-950/45">
+          <TranscriptPanel transcript={transcript} onClear={clearTranscript} />
+        </div>
+      </SideSheet>
+
+      <SideSheet open={showInsights} onClose={() => setShowInsights(false)} title="Visualisation & insights" subtitle="Lecture PAKAZURE des KPI générés à la demande">
+        <DatavizPanel
+          data={vizData as { title?: string; summary?: string; chartType?: string; series?: { label: string; value: number }[]; insight?: string } | null}
+          loading={vizLoading}
+        />
+      </SideSheet>
+
       {showTools && (
         <>
-          <button className="fixed inset-0 z-30 bg-slate-950/55 backdrop-blur-sm" onClick={() => setShowTools(false)} aria-label="Fermer le panneau outils" />
+          <div className="fixed inset-0 z-30 bg-slate-950/40" onClick={() => setShowTools(false)} />
           <ToolsPanel tools={tools} onToggle={toggleTool} onClose={() => setShowTools(false)} />
         </>
       )}
