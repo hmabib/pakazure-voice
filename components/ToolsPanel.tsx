@@ -11,11 +11,11 @@ interface Props {
 }
 
 const futureIntegrations = [
-  { name: "Softis Ops", icon: DatabaseZap, status: "À brancher", tone: "text-cyan-200" },
-  { name: "Gemini Dataviz", icon: Sparkles, status: "Preview UI prêt", tone: "text-sky-200" },
-  { name: "Météo & route", icon: Waves, status: "Tool natif", tone: "text-emerald-200" },
-  { name: "Recherche stratégique", icon: Search, status: "Tool natif", tone: "text-violet-200" },
-  { name: "Port status / CAMCIS", icon: Radar, status: "Connecteur futur", tone: "text-amber-200" },
+  { name: "Softis Ops", icon: DatabaseZap, status: "Connecteur métier", tone: "text-cyan-200" },
+  { name: "Gemini Dataviz", icon: Sparkles, status: "Prêt pour KPI", tone: "text-sky-200" },
+  { name: "Météo & route", icon: Waves, status: "Actif", tone: "text-emerald-200" },
+  { name: "Recherche stratégique", icon: Search, status: "Actif", tone: "text-violet-200" },
+  { name: "Port status / CAMCIS", icon: Radar, status: "Slot d’intégration", tone: "text-amber-200" },
   { name: "Agents & actions", icon: Cpu, status: "Architecture prête", tone: "text-blue-200" },
 ];
 
@@ -23,12 +23,12 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
   const enabledCount = tools.filter((tool) => tool.enabled).length;
 
   return (
-    <div className="slide-in-right fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-cyan-300/15 bg-slate-950/92 backdrop-blur-2xl shadow-[0_0_60px_rgba(8,15,34,0.8)]">
+    <div className="slide-in-right fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-cyan-300/12 bg-slate-950/96 shadow-[0_0_60px_rgba(8,15,34,0.8)]">
       <div className="border-b border-white/10 px-5 py-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.38em] text-cyan-200/75">Action center</p>
-            <h2 className="mt-2 text-xl font-semibold text-white">Panneau outils & intégrations</h2>
+            <h2 className="mt-2 text-xl font-semibold text-white">Outils & priorités</h2>
           </div>
           <button onClick={onClose} className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:border-cyan-300/30 hover:text-white">
             <X size={18} />
@@ -46,7 +46,7 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
           </div>
           <div className="rounded-2xl border border-emerald-300/10 bg-emerald-400/5 p-3">
             <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">Mode</p>
-            <p className="mt-1 text-sm font-semibold text-emerald-200">Ready</p>
+            <p className="mt-1 text-sm font-semibold text-emerald-200">Ops</p>
           </div>
         </div>
       </div>
@@ -55,12 +55,16 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-medium text-white">Outils temps réel</h3>
-            <span className="text-[10px] uppercase tracking-[0.28em] text-slate-500">live toggles</span>
+            <span className="text-[10px] uppercase tracking-[0.28em] text-slate-500">priorisation</span>
           </div>
 
           <div className="space-y-3">
-            {tools.map((tool) => (
-              <div key={tool.name} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.04]">
+            {tools.map((tool, index) => (
+              <button
+                key={tool.name}
+                onClick={() => onToggle(tool.name)}
+                className="w-full rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.04]"
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/15 bg-slate-900/80 text-xl">
                     {tool.icon || "🔧"}
@@ -73,33 +77,20 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
                         </p>
                         <p className="mt-1 text-xs leading-relaxed text-slate-400">{tool.description}</p>
                       </div>
-                      <button
-                        onClick={() => onToggle(tool.name)}
-                        className={clsx(
-                          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition",
-                          tool.enabled
-                            ? "border-cyan-300/30 bg-cyan-400/20"
-                            : "border-white/10 bg-slate-800"
-                        )}
-                      >
-                        <span
-                          className={clsx(
-                            "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
-                            tool.enabled ? "translate-x-6" : "translate-x-1"
-                          )}
-                        />
-                      </button>
+                      <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                        P{index + 1}
+                      </span>
                     </div>
 
-                    <div className="mt-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.24em]">
+                    <div className="mt-3 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.24em]">
                       <span className={clsx("rounded-full px-2 py-1", tool.enabled ? "bg-emerald-400/10 text-emerald-200" : "bg-slate-800 text-slate-400")}>
                         {tool.enabled ? "Actif" : "Off"}
                       </span>
-                      <span className="text-slate-500">tool-choice auto</span>
+                      <span className="text-cyan-100/70">Cliquer pour basculer</span>
                     </div>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -107,7 +98,7 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-medium text-white">Connecteurs prévus</h3>
-            <span className="text-[10px] uppercase tracking-[0.28em] text-slate-500">api slots</span>
+            <span className="text-[10px] uppercase tracking-[0.28em] text-slate-500">roadmap</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {futureIntegrations.map(({ name, icon: Icon, status, tone }) => (
@@ -128,7 +119,7 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
       </div>
 
       <div className="border-t border-white/10 px-5 py-4 text-xs leading-relaxed text-slate-400">
-        Le panneau est déjà structuré pour accueillir des actions métier, des outils temps réel et des APIs externes sans casser la compatibilité Next.js / Vercel.
+        Le panneau privilégie maintenant les actions réelles et la bascule rapide des outils au lieu d’un simple affichage décoratif.
       </div>
     </div>
   );
