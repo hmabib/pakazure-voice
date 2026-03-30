@@ -139,7 +139,12 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
             type: "conversation.item.create",
             item: { type: "function_call_output", call_id: callId, output: result },
           });
-          sendEvent({ type: "response.create" });
+          sendEvent({
+            type: "response.create",
+            response: {
+              output_modalities: ["audio"],
+            },
+          });
           break;
         }
         case "error": {
@@ -287,7 +292,7 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
             type: "realtime",
             model: data.model || "gpt-realtime",
             instructions: settings.systemPrompt,
-            output_modalities: ["audio", "text"],
+            output_modalities: ["audio"],
             audio: {
               input: {
                 turn_detection: {
