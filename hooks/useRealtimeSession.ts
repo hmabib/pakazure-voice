@@ -223,6 +223,7 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
       audioRef.current = audio;
       pc.ontrack = (e) => {
         audio.srcObject = e.streams[0];
+        audio.play().catch(() => undefined);
       };
 
       const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -287,21 +288,6 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
             tool_choice: enabledToolDefinitions.length > 0 ? "auto" : "none",
           },
         });
-
-        sendEvent({
-          type: "response.create",
-          response: {
-            modalities: ["audio", "text"],
-          },
-        });
-
-        if (settings.realtimeVideo.enabled) {
-          console.info(
-            resolvedVideoMode === "camera-feed"
-              ? "Webcam active dans la session realtime."
-              : `Webcam active côté UI uniquement. ${resolvedFallbackReason}`
-          );
-        }
       };
 
       const offer = await pc.createOffer();
