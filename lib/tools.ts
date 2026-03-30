@@ -46,7 +46,7 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function" as const,
     name: "get_port_status",
-    description: "Obtenir le statut en temps réel du Port Autonome de Kribi (PAK), Cameroun",
+    description: "Obtenir le statut général du Port Autonome de Kribi via les stats portuaires générales",
     parameters: { type: "object", properties: {}, required: [] },
   },
   {
@@ -64,11 +64,28 @@ export const TOOL_DEFINITIONS = [
   {
     type: "function" as const,
     name: "query_softis",
-    description: "Interroger de manière sécurisée le backend Softis via une route serveur protégée",
+    description: "Interroger les statistiques conteneurs via Softis de manière sécurisée",
     parameters: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Requête métier ou SQL compatible selon votre backend Softis" },
+        query: { type: "string", description: "Question ou requête métier sur les conteneurs, import/export, EVP, TEU, pleins/vides" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    type: "function" as const,
+    name: "query_port_stats",
+    description: "Interroger les statistiques portuaires générales via Supabase (escales, marchandises, finance, camions, productivité, vue générale)",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Question métier sur les statistiques portuaires générales" },
+        domain: {
+          type: "string",
+          enum: ["escales", "marchandises", "conteneurs", "finance", "camions", "productivite", "parts_ligne"],
+          description: "Domaine ciblé si nécessaire",
+        },
       },
       required: ["query"],
     },
@@ -80,7 +97,8 @@ export const DEFAULT_TOOLS: Tool[] = [
   { name: "get_weather", description: "Météo en temps réel", enabled: true, icon: "🌤️" },
   { name: "calculate", description: "Calcul mathématique", enabled: true, icon: "🧮" },
   { name: "search_web", description: "Recherche web", enabled: true, icon: "🔍" },
-  { name: "get_port_status", description: "Statut Port de Kribi", enabled: true, icon: "⚓" },
+  { name: "get_port_status", description: "Statut général du port", enabled: true, icon: "⚓" },
   { name: "generate_gemini_dataviz", description: "Dataviz Gemini", enabled: true, icon: "📊" },
-  { name: "query_softis", description: "Requêtes Softis sécurisées", enabled: true, icon: "🗄️" },
+  { name: "query_softis", description: "Stats conteneurs via Softis", enabled: true, icon: "🗄️" },
+  { name: "query_port_stats", description: "Stats portuaires générales", enabled: true, icon: "📈" },
 ];

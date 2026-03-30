@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getPortDashboard } from "@/lib/port-stats";
+import { getPortDashboard, getPortDomain } from "@/lib/port-stats";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -94,7 +94,7 @@ export async function getPortStatus() {
     status: dashboard.configured ? "Connecté" : "Fallback",
     source: dashboard.source,
     note: dashboard.configured
-      ? "Les statistiques portuaires sont disponibles côté serveur et consultables par l'assistant."
+      ? "Les statistiques portuaires générales sont disponibles côté serveur et consultables par l'assistant."
       : "Le panneau stats fonctionne, mais certaines variables Supabase restent à configurer pour la donnée réelle.",
     last_updated: dashboard.generatedAt,
   };
@@ -170,19 +170,43 @@ export async function querySoftis(query: string) {
     const data = await res.json();
     return {
       configured: true,
-      backend: "softis-api",
+      backend: "softis-conteneurs",
+      scope: "conteneurs",
       query,
       data,
     };
   }
 
-  const dashboard = await getPortDashboard();
+  const domain = await getPortDomain("conteneurs");
   return {
     configured: false,
-    backend: "supabase-port-stats-fallback",
-    note: "SOFTIS_API_BASE_URL et/ou SOFTIS_API_TOKEN non configurés. Réponse fournie via le backend stats Supabase déjà branché.",
+    backend: "supabase-conteneurs-fallback",
+    scope: "conteneurs",
+    note: "SOFTIS_API_BASE_URL et/ou SOFTIS_API_TOKEN non configurés. Réponse fournie via la vue conteneurs Supabase déjà branchée.",
     query,
-    data: dashboard,
+    data: domain,
+  };
+}
+
+export async function queryPortStats(query: string, domain?: string) {
+  const allowedDomains = ["escales", "marchandises", "conteneurs", "finance", "camions", "productivite", "parts_ligne"];
+
+  if (domain && allowedDomains.includes(domain)) {
+    return {
+      configured: true,
+      backend: "supabase-port-stats",
+      scope: domain,
+      query,
+      data: await getPortDomain(domain as "escales" | "marchandises" | "conteneurs" | "finance" | "camions" | "productivite" | "parts_ligne"),
+    };
+  }
+
+  return {
+    configured: true,
+    backend: "supabase-port-stats",
+    scope: "general",
+    query,
+    data: await getPortDashboard(),
   };
 }
 

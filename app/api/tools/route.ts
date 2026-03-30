@@ -5,6 +5,7 @@ import {
   getCurrentTime,
   getPortStatus,
   getWeather,
+  queryPortStats,
   querySoftis,
   searchWeb,
 } from "@/lib/server-tools";
@@ -45,6 +46,9 @@ export async function POST(req: NextRequest) {
         break;
       case "query_softis":
         result = await querySoftis(String(input.query || ""));
+        break;
+      case "query_port_stats":
+        result = await queryPortStats(String(input.query || ""), input.domain ? String(input.domain) : undefined);
         break;
       default:
         return NextResponse.json({ error: `Tool inconnu: ${name}` }, { status: 400 });
