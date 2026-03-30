@@ -310,7 +310,10 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         },
         body: offer.sdp,
       });
-      if (!sdpRes.ok) throw new Error("Échec de la négociation audio temps réel");
+      if (!sdpRes.ok) {
+        const rawError = await sdpRes.text().catch(() => "");
+        throw new Error(`Échec de la négociation audio temps réel (${sdpRes.status})${rawError ? `: ${rawError}` : ""}`);
+      }
 
       const answer: RTCSessionDescriptionInit = {
         type: "answer",
