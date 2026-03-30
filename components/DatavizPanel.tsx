@@ -23,7 +23,7 @@ export default function DatavizPanel({ data, loading = false }: Props) {
   const max = Math.max(1, ...series.map((item) => item.value || 0));
 
   return (
-    <div className="rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-4">
+    <div className="min-w-0 rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Gemini dataviz</p>
@@ -61,7 +61,7 @@ export default function DatavizPanel({ data, loading = false }: Props) {
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Généré par PAKAZURE</p>
               </div>
             </div>
-            <p className="text-sm leading-6 text-slate-300">{data.summary}</p>
+            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">{data.summary}</p>
           </div>
 
           <div className="rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(46,109,180,0.16),rgba(7,14,32,0.62))] p-4">
@@ -70,9 +70,9 @@ export default function DatavizPanel({ data, loading = false }: Props) {
               <span className="text-[11px] uppercase tracking-[0.28em] text-slate-400">PAKAZURE</span>
             </div>
 
-            <div className="flex h-52 items-end gap-3 rounded-2xl border border-white/8 bg-slate-950/35 px-4 pb-4 pt-6">
+            <div className="flex h-52 items-end gap-3 overflow-x-auto rounded-2xl border border-white/8 bg-slate-950/35 px-4 pb-4 pt-6">
               {series.map((item) => (
-                <div key={item.label} className="flex flex-1 flex-col items-center justify-end gap-2">
+                <div key={item.label} className="flex min-w-[72px] flex-1 flex-col items-center justify-end gap-2">
                   <div className="text-xs font-semibold text-cyan-100">{item.value}</div>
                   <div
                     className="w-full rounded-t-xl bg-gradient-to-t from-cyan-400 to-blue-500"
@@ -87,7 +87,7 @@ export default function DatavizPanel({ data, loading = false }: Props) {
           {data.insight && (
             <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.05] p-4">
               <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-100">Insight</p>
-              <p className="mt-2 text-sm leading-6 text-slate-200">{data.insight}</p>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{data.insight}</p>
             </div>
           )}
         </div>

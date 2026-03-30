@@ -31,7 +31,7 @@ export default function PortStatsPanel({ data, loading = false }: Props) {
   }
 
   return (
-    <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-4">
+    <div className="min-w-0 rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Stats portuaires</p>
@@ -53,7 +53,7 @@ export default function PortStatsPanel({ data, loading = false }: Props) {
               {block.metrics.slice(0, 4).map((metric) => (
                 <div key={`${block.title}-${metric.key}`} className="flex items-center justify-between gap-3 rounded-2xl border border-white/6 bg-white/[0.02] px-3 py-2">
                   <div>
-                    <p className="text-sm text-slate-200">{metric.label}</p>
+                    <p className="break-words text-sm text-slate-200">{metric.label}</p>
                     {typeof metric.trend === "number" && (
                       <p className={clsx("mt-1 text-[11px] uppercase tracking-[0.2em]", metric.trend >= 0 ? "text-emerald-300" : "text-red-300")}>
                         {metric.trend >= 0 ? "+" : ""}
@@ -94,13 +94,13 @@ export default function PortStatsPanel({ data, loading = false }: Props) {
           {activeGroup && (
             <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/45 p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-white">{activeGroup.label}</p>
+                <p className="break-words text-sm font-semibold text-white">{activeGroup.label}</p>
                 <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Détail métier</p>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {activeGroup.metrics.slice(0, 6).map((metric) => (
                   <div key={metric.key} className="rounded-2xl border border-white/6 bg-white/[0.02] px-3 py-3">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
+                    <p className="break-words text-xs uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
                     <p className="mt-2 text-lg font-semibold text-white">{formatMetric(metric)}</p>
                   </div>
                 ))}
@@ -110,7 +110,7 @@ export default function PortStatsPanel({ data, loading = false }: Props) {
         </>
       )}
 
-      {data.notes.length > 0 && <p className="mt-4 text-xs leading-6 text-slate-500">{data.notes[0]}</p>}
+      {data.notes.length > 0 && <p className="mt-4 whitespace-pre-wrap break-words text-xs leading-6 text-slate-500">{data.notes[0]}</p>}
     </div>
   );
 }

@@ -210,7 +210,7 @@ export async function queryPortStats(query: string, domain?: string) {
   };
 }
 
-export async function createRealtimeSession() {
+export async function createRealtimeSession({ enableVideo = false }: { enableVideo?: boolean } = {}) {
   const client = new OpenAI({ apiKey: requireEnv("OPENAI_API_KEY") });
   const model = (process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview") as
     | "gpt-4o-realtime-preview"
@@ -219,8 +219,21 @@ export async function createRealtimeSession() {
     | "gpt-4o-mini-realtime-preview"
     | "gpt-4o-mini-realtime-preview-2024-12-17";
 
-  return client.beta.realtime.sessions.create({
+  const videoInputEnabled = process.env.OPENAI_REALTIME_ENABLE_VIDEO === "true";
+  const session = await client.beta.realtime.sessions.create({
     model,
     voice: "echo",
   });
+
+  return {
+    ...session,
+    capabilities: {
+      videoInput: enableVideo && videoInputEnabled,
+      videoMode: enableVideo && videoInputEnabled ? "camera-feed" : "architecture-only",
+      fallbackReason:
+        enableVideo && !videoInputEnabled
+          ? "Support webcam realtime non confirmé côté modèle/session. L’UI, le state local et la négociation serveur sont préparés, mais l’injection vidéo au modèle reste désactivée tant que OPENAI_REALTIME_ENABLE_VIDEO n’est pas explicitement activé."
+          : undefined,
+    },
+  };
 }

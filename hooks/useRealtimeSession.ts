@@ -5,16 +5,35 @@ import type { SessionStatus, TranscriptItem, Settings, Tool } from "@/lib/types"
 import { executeToolCall } from "@/lib/toolHandlers";
 import { TOOL_DEFINITIONS } from "@/lib/tools";
 
+interface RealtimeSessionRequest {
+  enableVideo?: boolean;
+}
+
+interface RealtimeSessionBootstrap {
+  client_secret?: { value?: string };
+  capabilities?: {
+    videoInput?: boolean;
+    videoMode?: string;
+    fallbackReason?: string;
+  };
+}
+
 export function useRealtimeSession(settings: Settings, tools: Tool[]) {
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0);
+  const [videoEnabledInSession, setVideoEnabledInSession] = useState(false);
+  const [videoSupportMode, setVideoSupportMode] = useState<"camera-feed" | "architecture-only">("architecture-only");
+  const [videoFallbackReason, setVideoFallbackReason] = useState<string | null>(settings.realtimeVideo.fallbackReason || null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [localVideoStream, setLocalVideoStream] = useState<MediaStream | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const micTrackRef = useRef<MediaStreamTrack | null>(null);
+  const videoTrackRef = useRef<MediaStreamTrack | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number>(0);
@@ -35,6 +54,15 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
     if (dcRef.current?.readyState === "open") {
       dcRef.current.send(JSON.stringify(event));
     }
+  }, []);
+
+  const cleanupLocalVideo = useCallback(() => {
+    videoTrackRef.current?.stop();
+    videoTrackRef.current = null;
+    setLocalVideoStream((current) => {
+      current?.getTracks().forEach((track) => track.stop());
+      return null;
+    });
   }, []);
 
   const handleServerEvent = useCallback(
@@ -128,8 +156,9 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       audioContextRef.current?.close().catch(() => undefined);
+      cleanupLocalVideo();
     };
-  }, []);
+  }, [cleanupLocalVideo]);
 
   const startVolumeAnalyser = useCallback((stream: MediaStream) => {
     try {
@@ -158,16 +187,33 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
   const connect = useCallback(async () => {
     setStatus("connecting");
     setIsMuted(false);
+    setCameraError(null);
 
     try {
-      const res = await fetch("/api/realtime/session", { method: "POST" });
+      const wantsVideo = settings.realtimeVideo.enabled;
+      const res = await fetch("/api/realtime/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enableVideo: wantsVideo } satisfies RealtimeSessionRequest),
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Failed to get session token" }));
         throw new Error(err.error || "Failed to get session token");
       }
-      const data = await res.json();
+      const data = (await res.json()) as RealtimeSessionBootstrap;
       const ephemeralKey: string | undefined = data.client_secret?.value;
       if (!ephemeralKey) throw new Error("Aucune clé de session reçue");
+
+      const serverVideoCapable = Boolean(data.capabilities?.videoInput);
+      const resolvedVideoMode = data.capabilities?.videoMode === "camera-feed" && wantsVideo ? "camera-feed" : "architecture-only";
+      const resolvedFallbackReason =
+        data.capabilities?.fallbackReason ||
+        settings.realtimeVideo.fallbackReason ||
+        "Le flux webcam temps réel n’est pas pleinement supporté par la session courante.";
+
+      setVideoEnabledInSession(wantsVideo && serverVideoCapable);
+      setVideoSupportMode(resolvedVideoMode);
+      setVideoFallbackReason(wantsVideo && !serverVideoCapable ? resolvedFallbackReason : null);
 
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
@@ -179,17 +225,49 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         audio.srcObject = e.streams[0];
       };
 
-      const ms = await navigator.mediaDevices.getUserMedia({
+      const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
       });
-      const track = ms.getTracks()[0];
-      micTrackRef.current = track;
-      pc.addTrack(track, ms);
-      startVolumeAnalyser(ms);
+      const audioTrack = audioStream.getTracks()[0];
+      micTrackRef.current = audioTrack;
+      pc.addTrack(audioTrack, audioStream);
+      startVolumeAnalyser(audioStream);
+
+      if (wantsVideo) {
+        try {
+          const videoStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "user",
+            },
+          });
+          const videoTrack = videoStream.getVideoTracks()[0] || null;
+          videoTrackRef.current = videoTrack;
+          setLocalVideoStream(videoStream);
+
+          if (videoTrack && serverVideoCapable) {
+            pc.addTrack(videoTrack, videoStream);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Accès webcam refusé ou indisponible";
+          setCameraError(message);
+          addTranscript({
+            role: "tool",
+            toolName: "camera",
+            text: `⚠️ Webcam non disponible: ${message}`,
+          });
+        }
+      } else {
+        cleanupLocalVideo();
+        setVideoEnabledInSession(false);
+        setVideoSupportMode("architecture-only");
+        setVideoFallbackReason(null);
+      }
 
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
@@ -210,8 +288,25 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
             },
             tools: enabledToolDefinitions,
             tool_choice: enabledToolDefinitions.length > 0 ? "auto" : "none",
+            metadata: {
+              language: settings.language,
+              push_to_talk: settings.pushToTalk ? "enabled" : "disabled",
+              video_requested: settings.realtimeVideo.enabled ? "true" : "false",
+              video_mode: resolvedVideoMode,
+            },
           },
         });
+
+        if (settings.realtimeVideo.enabled) {
+          addTranscript({
+            role: "tool",
+            toolName: "camera",
+            text:
+              resolvedVideoMode === "camera-feed"
+                ? "📷 Webcam activée pour cette session realtime."
+                : `📷 Webcam activée côté UI/état local, mais non injectée au modèle: ${resolvedFallbackReason}`,
+          });
+        }
       };
 
       const offer = await pc.createOffer();
@@ -242,13 +337,14 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
       });
       setStatus("error");
     }
-  }, [settings, handleServerEvent, sendEvent, startVolumeAnalyser, addTranscript, enabledToolDefinitions]);
+  }, [settings, handleServerEvent, sendEvent, startVolumeAnalyser, addTranscript, enabledToolDefinitions, cleanupLocalVideo]);
 
   const disconnect = useCallback(() => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     dcRef.current?.close();
     pcRef.current?.close();
     micTrackRef.current?.stop();
+    cleanupLocalVideo();
     if (audioRef.current) audioRef.current.srcObject = null;
     analyserRef.current = null;
     audioContextRef.current?.close().catch(() => undefined);
@@ -258,7 +354,8 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
     micTrackRef.current = null;
     setStatus("disconnected");
     setVolume(0);
-  }, []);
+    setVideoEnabledInSession(false);
+  }, [cleanupLocalVideo]);
 
   const toggleMute = useCallback(() => {
     if (micTrackRef.current) {
@@ -298,5 +395,10 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
     toggleMute,
     sendText,
     clearTranscript,
+    localVideoStream,
+    videoEnabledInSession,
+    videoSupportMode,
+    videoFallbackReason,
+    cameraError,
   };
 }

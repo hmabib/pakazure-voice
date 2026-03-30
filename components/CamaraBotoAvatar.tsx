@@ -128,7 +128,7 @@ export default function CamaraBotoAvatar({ status, volume = 0, compact = false, 
   });
 
   return (
-    <div className={clsx("relative flex w-full flex-col items-center justify-center select-none", compact ? "max-w-[280px]" : "max-w-[520px]")}>
+    <div className={clsx("relative flex min-w-0 w-full flex-col items-center justify-center select-none", compact ? "max-w-[280px]" : "max-w-[520px]")}>
       <div
         className={clsx(
           "avatar-shell relative flex items-center justify-center transition-transform duration-300",
@@ -224,9 +224,9 @@ export default function CamaraBotoAvatar({ status, volume = 0, compact = false, 
       </div>
 
       {config.showTranscriptBelowAvatar && transcriptText && (
-        <div className="mt-4 w-full max-w-2xl rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
+        <div className="mt-4 max-h-[168px] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
           <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/70">Transcript live</p>
-          <p className="mt-2 text-sm leading-6 text-slate-300">{transcriptText}</p>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">{transcriptText}</p>
         </div>
       )}
     </div>

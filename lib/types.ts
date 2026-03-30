@@ -41,12 +41,20 @@ export interface AvatarSettings {
   showTranscriptBelowAvatar: boolean;
 }
 
+export interface RealtimeVideoSettings {
+  enabled: boolean;
+  previewMirrored: boolean;
+  mode: "camera-feed" | "architecture-only";
+  fallbackReason?: string;
+}
+
 export interface Settings {
   voice: string;
   language: string;
   systemPrompt: string;
   mcpServers: MCPServer[];
   pushToTalk: boolean;
+  realtimeVideo: RealtimeVideoSettings;
   avatar: AvatarSettings;
 }
 
@@ -105,12 +113,19 @@ export const DEFAULT_SETTINGS: Settings = {
     "Tu es PAKAZURE Voice, un assistant IA expert en logistique portuaire et commerce africain. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu es précis, professionnel et utile. Tu as accès à des outils pour rechercher des informations, calculer, obtenir la météo et le statut du Port Autonome de Kribi.",
   mcpServers: [],
   pushToTalk: false,
+  realtimeVideo: {
+    enabled: false,
+    previewMirrored: true,
+    mode: "architecture-only",
+    fallbackReason:
+      "Le flux webcam vers le modèle realtime dépend encore du support effectif du modèle et de la négociation WebRTC côté fournisseur. L’option prépare le state, la session et la capture locale avec garde-fous.",
+  },
   avatar: {
-    mouthX: 0.5,
-    mouthY: -1.5,
-    eyesX: 0.3,
-    eyesY: -1.2,
-    effectIntensity: 0.85,
+    mouthX: 6,
+    mouthY: 5,
+    eyesX: 4.5,
+    eyesY: 4,
+    effectIntensity: 0.7,
     avatarScale: 1.04,
     keepCenteredWhileSpeaking: true,
     showTranscriptBelowAvatar: true,

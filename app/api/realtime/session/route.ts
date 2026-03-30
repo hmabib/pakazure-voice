@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createRealtimeSession } from "@/lib/server-tools";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const session = await createRealtimeSession();
+    const body = (await request.json().catch(() => ({}))) as { enableVideo?: boolean };
+    const session = await createRealtimeSession({ enableVideo: Boolean(body.enableVideo) });
     return NextResponse.json(session);
   } catch (error) {
     return NextResponse.json(

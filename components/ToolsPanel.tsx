@@ -23,7 +23,7 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
   const enabledCount = tools.filter((tool) => tool.enabled).length;
 
   return (
-    <div className="slide-in-right fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-cyan-300/12 bg-slate-950/96 shadow-[0_0_60px_rgba(8,15,34,0.8)]">
+    <div className="slide-in-right fixed right-0 top-0 z-40 flex h-full w-full max-w-full flex-col border-l border-cyan-300/12 bg-slate-950/96 shadow-[0_0_60px_rgba(8,15,34,0.8)] sm:max-w-md">
       <div className="border-b border-white/10 px-5 py-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -69,13 +69,13 @@ export default function ToolsPanel({ tools, onToggle, onClose }: Props) {
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/15 bg-slate-900/80 text-xl">
                     {tool.icon || "🔧"}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 overflow-hidden">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="break-words text-sm font-semibold text-white">
                           {tool.name.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
                         </p>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-400">{tool.description}</p>
+                        <p className="mt-1 break-words text-xs leading-relaxed text-slate-400">{tool.description}</p>
                       </div>
                       <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-slate-400">
                         P{index + 1}
