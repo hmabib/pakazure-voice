@@ -1,89 +1,76 @@
-# PAKAZURE Voice 🐬
+# PAKAZURE Voice — Refonte futuriste JARVIS
 
-> Assistant IA vocal temps réel — Port Autonome de Kribi
+Assistant vocal temps réel Next.js / Vercel avec identité visuelle premium PAKAZURE.
 
-Interface web conversationnelle utilisant l'OpenAI Realtime API (WebRTC) pour des conversations vocales ultra-faibles en latence.
+## Ce qui a été refondu
 
-## Fonctionnalités
+- **Nouveau dashboard header** avec métriques live, branding PAKAZURE et statut de session.
+- **Zone avatar centrale premium** avec photo enrichie, micro-animations, clignement des yeux, lip-sync réactif au volume, scanlines et overlays HUD.
+- **Panneau outils / actions** modernisé pour activer les tools temps réel et préparer les futures intégrations métier.
+- **Panneau dataviz / visualisation** ajouté pour accueillir Gemini dataviz, KPI portuaires, previews d’analyses et statuts opérationnels.
+- **Transcript panel** repensé avec meilleure hiérarchie visuelle et lecture des événements assistant / user / tools.
+- **Structure plus extensible** pour brancher Softis, météo, recherche, port status, CAMCIS, Gemini dataviz, etc.
 
-- 🎤 **Voix temps réel** via OpenAI Realtime API + WebRTC
-- 🛠️ **5 outils intégrés** : météo, calcul, heure, recherche web, statut Port Kribi
-- 🔌 **MCP ready** : connectez n'importe quel serveur MCP
-- 🎨 **Design PAKAZURE** : thème sombre, animations orbe
-- 📱 **Responsive** : fonctionne sur mobile et desktop
-- ⌨️ **Saisie texte** en complément de la voix
+## Correctifs effectués
 
-## Setup rapide
+- Ajout de la route serveur manquante **`/api/realtime/session`** pour créer les sessions OpenAI Realtime.
+- Filtrage réel des tools activés côté session Realtime.
+- Amélioration du hook audio avec gestion plus propre de l’`AudioContext` et du volume analyser.
+- Nettoyage de plusieurs incohérences UI / états liés à la session.
 
-### 1. Variables d'environnement
+## Setup
 
 ```bash
 cp .env.local.example .env.local
-# Éditez .env.local et ajoutez votre clé OpenAI
-```
-
-```env
-OPENAI_API_KEY=sk-your-openai-api-key
-```
-
-### 2. Installation
-
-```bash
 npm install
 npm run dev
 ```
 
-Ouvrez http://localhost:3000
+Variables serveur recommandées :
 
-### 3. Deploy sur Vercel
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_REALTIME_MODEL=gpt-4o-realtime-preview
+BRAVE_SEARCH_API_KEY=...
+GEMINI_API_KEY=...
+SOFTIS_API_BASE_URL=https://...
+SOFTIS_API_TOKEN=...
+```
+
+## Sécurité des APIs
+
+Toutes les clés sensibles restent **côté serveur** via des routes Next.js (`/api/...`).
+Aucune clé API n’est exposée au navigateur.
+
+Connecteurs actuellement branchés côté serveur :
+- **OpenAI Realtime** via `/api/realtime/session`
+- **Brave Search** via `/api/tools`
+- **Gemini Dataviz** via `/api/tools`
+- **Softis** via `/api/tools` avec token backend
+
+Les outils côté navigateur appellent uniquement la route serveur sécurisée, jamais les fournisseurs directement.
+
+## Compatibilité
+
+- **Next.js 14**
+- **Vercel-ready**
+- UI responsive desktop / tablet / mobile large
+
+## Prochaines intégrations API suggérées
+
+1. **Softis / ERP / opérations** : actions métier, formulaires, workflows.
+2. **Gemini dataviz** : graphiques générés depuis prompts ou données portuaires.
+3. **CAMCIS / Port status** : navires, BL, manifestes, escales, inventaire terminal.
+4. **Recherche web / veille** : briefings marché, météo, actus logistiques.
+5. **Panel tools unifié** : actions, automations, connecteurs MCP, plugins.
+
+## Vérification locale
+
+À lancer après modification :
 
 ```bash
-# Via CLI
-npm i -g vercel
-vercel
-
-# Ou connectez le repo GitHub à vercel.com
-# Ajoutez OPENAI_API_KEY dans les variables d'environnement Vercel
+npm run build
+npm run lint
 ```
 
-## Architecture
-
-```
-Browser
-  └── VoiceAssistant (React)
-        ├── useRealtimeSession (WebRTC Hook)
-        │     ├── POST /api/realtime/session → ephemeral token
-        │     ├── RTCPeerConnection → OpenAI Realtime API
-        │     ├── DataChannel → events (transcript, tools)
-        │     └── Tool calls → toolHandlers.ts
-        ├── OrbVisualizer (animations)
-        ├── TranscriptPanel (chat history)
-        ├── ToolsPanel (toggle outils)
-        └── SettingsModal (voix, langue, MCP)
-```
-
-## Outils disponibles
-
-| Outil | Description |
-|-------|-------------|
-| `get_current_time` | Date/heure Africa/Lagos |
-| `get_weather` | Météo wttr.in |
-| `calculate` | Calcul mathématique |
-| `search_web` | Recherche web (mock, connecter Brave API) |
-| `get_port_status` | Statut Port Autonome de Kribi |
-
-## Connecter un serveur MCP
-
-Dans Paramètres → Serveurs MCP, ajoutez l'URL WebSocket de votre serveur MCP :
-```
-ws://localhost:3001/mcp
-wss://your-mcp-server.com/mcp
-```
-
-## Coût estimé
-
-- OpenAI Realtime API : ~$0.06/min audio input + $0.24/min audio output
-- Une conversation de 5 min ≈ $1.50
-
----
-*Généré par PAKAZURE 🐬 — Port Autonome de Kribi*
+Si `next lint` n’est pas disponible selon votre config Next.js, remplacer par une commande ESLint dédiée.

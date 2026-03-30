@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
-import type { Settings, MCPServer } from "@/lib/types";
+import { Plus, Trash2, X } from "lucide-react";
+import type { MCPServer, Settings } from "@/lib/types";
 
 interface Props {
   settings: Settings;
@@ -11,18 +11,18 @@ interface Props {
 }
 
 const VOICES = [
-  { id: "shimmer", label: "Shimmer (FR recommandé)" },
+  { id: "echo", label: "Echo • premium FR" },
+  { id: "shimmer", label: "Shimmer" },
   { id: "alloy", label: "Alloy" },
-  { id: "echo", label: "Echo" },
-  { id: "nova", label: "Nova" },
   { id: "onyx", label: "Onyx" },
+  { id: "nova", label: "Nova" },
   { id: "coral", label: "Coral" },
 ];
 
 const LANGUAGES = [
-  { id: "fr", label: "🇫🇷 Français" },
-  { id: "en", label: "🇬🇧 English" },
-  { id: "ar", label: "🇸🇦 العربية" },
+  { id: "fr", label: "Français" },
+  { id: "en", label: "English" },
+  { id: "ar", label: "العربية" },
 ];
 
 export default function SettingsModal({ settings, onSave, onClose }: Props) {
@@ -36,146 +36,136 @@ export default function SettingsModal({ settings, onSave, onClose }: Props) {
       name: newMcpUrl.replace(/^wss?:\/\//, "").split("/")[0],
       connected: false,
     };
-    setForm((f) => ({ ...f, mcpServers: [...f.mcpServers, server] }));
+    setForm((current) => ({ ...current, mcpServers: [...current.mcpServers, server] }));
     setNewMcpUrl("");
   };
 
   const removeMcpServer = (url: string) => {
-    setForm((f) => ({ ...f, mcpServers: f.mcpServers.filter((s) => s.url !== url) }));
+    setForm((current) => ({ ...current, mcpServers: current.mcpServers.filter((server) => server.url !== url) }));
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <button className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={onClose} aria-label="Fermer les paramètres" />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg glass-dark rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold">Paramètres</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+      <div className="panel-shell relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.36em] text-cyan-200/70">Configuration</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">Paramètres temps réel</h2>
+          </div>
+          <button onClick={onClose} className="rounded-2xl border border-white/10 bg-white/5 p-2 text-slate-400 transition hover:border-cyan-300/20 hover:text-white">
             <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-          {/* Voice */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Voix</label>
-            <div className="grid grid-cols-2 gap-2">
-              {VOICES.map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => setForm((f) => ({ ...f, voice: v.id }))}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    form.voice === v.id
-                      ? "bg-blue-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
-                  }`}
-                >
-                  {v.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Language */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Langue</label>
-            <div className="flex gap-2">
-              {LANGUAGES.map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => setForm((f) => ({ ...f, language: l.id }))}
-                  className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    form.language === l.id
-                      ? "bg-blue-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Mode */}
-          <div className="flex items-center justify-between">
+        <div className="grid flex-1 gap-6 overflow-y-auto px-6 py-6 lg:grid-cols-2">
+          <section className="space-y-6">
             <div>
-              <p className="text-sm font-medium text-gray-300">Mode microphone</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {form.pushToTalk ? "Maintenir pour parler" : "Bascule marche/arrêt"}
-              </p>
+              <label className="mb-3 block text-sm font-medium text-slate-200">Voix</label>
+              <div className="grid grid-cols-2 gap-3">
+                {VOICES.map((voice) => (
+                  <button
+                    key={voice.id}
+                    onClick={() => setForm((current) => ({ ...current, voice: voice.id }))}
+                    className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                      form.voice === voice.id
+                        ? "border-cyan-300/30 bg-cyan-400/10 text-white"
+                        : "border-white/10 bg-white/5 text-slate-400 hover:border-cyan-300/15 hover:text-white"
+                    }`}
+                  >
+                    {voice.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button
-              onClick={() => setForm((f) => ({ ...f, pushToTalk: !f.pushToTalk }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                form.pushToTalk ? "bg-blue-500" : "bg-gray-600"
-              }`}
-            >
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${form.pushToTalk ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
 
-          {/* System Prompt */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Prompt système</label>
-            <textarea
-              value={form.systemPrompt}
-              onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
-              rows={4}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
-            />
-          </div>
+            <div>
+              <label className="mb-3 block text-sm font-medium text-slate-200">Langue</label>
+              <div className="grid grid-cols-3 gap-3">
+                {LANGUAGES.map((language) => (
+                  <button
+                    key={language.id}
+                    onClick={() => setForm((current) => ({ ...current, language: language.id }))}
+                    className={`rounded-2xl border px-4 py-3 text-sm transition ${
+                      form.language === language.id
+                        ? "border-cyan-300/30 bg-cyan-400/10 text-white"
+                        : "border-white/10 bg-white/5 text-slate-400 hover:border-cyan-300/15 hover:text-white"
+                    }`}
+                  >
+                    {language.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* MCP Servers */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Serveurs MCP</label>
-            {form.mcpServers.length > 0 && (
-              <div className="space-y-1 mb-2">
-                {form.mcpServers.map((s) => (
-                  <div key={s.url} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
-                    <div>
-                      <p className="text-xs font-medium text-white">{s.name}</p>
-                      <p className="text-xs text-gray-500 font-mono truncate max-w-[260px]">{s.url}</p>
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-white">Mode microphone</p>
+                  <p className="mt-1 text-xs text-slate-400">Basculer entre mode ouvert et push-to-talk futur.</p>
+                </div>
+                <button
+                  onClick={() => setForm((current) => ({ ...current, pushToTalk: !current.pushToTalk }))}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full border transition ${
+                    form.pushToTalk ? "border-cyan-300/30 bg-cyan-400/15" : "border-white/10 bg-slate-800"
+                  }`}
+                >
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${form.pushToTalk ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <div>
+              <label className="mb-3 block text-sm font-medium text-slate-200">Prompt système</label>
+              <textarea
+                value={form.systemPrompt}
+                onChange={(event) => setForm((current) => ({ ...current, systemPrompt: event.target.value }))}
+                rows={8}
+                className="w-full rounded-3xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/25"
+              />
+            </div>
+
+            <div>
+              <label className="mb-3 block text-sm font-medium text-slate-200">Serveurs MCP</label>
+              <div className="space-y-3">
+                {form.mcpServers.map((server) => (
+                  <div key={server.url} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white">{server.name}</p>
+                      <p className="truncate font-mono text-xs text-slate-400">{server.url}</p>
                     </div>
-                    <button onClick={() => removeMcpServer(s.url)} className="text-red-400 hover:text-red-300 ml-2">
+                    <button onClick={() => removeMcpServer(server.url)} className="rounded-xl border border-red-300/15 bg-red-400/10 p-2 text-red-200 transition hover:border-red-300/30">
                       <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
               </div>
-            )}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newMcpUrl}
-                onChange={(e) => setNewMcpUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addMcpServer()}
-                placeholder="ws://localhost:3001/mcp"
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 font-mono"
-              />
-              <button
-                onClick={addMcpServer}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors"
-              >
-                <Plus size={16} />
-              </button>
+
+              <div className="mt-3 flex gap-3">
+                <input
+                  type="text"
+                  value={newMcpUrl}
+                  onChange={(event) => setNewMcpUrl(event.target.value)}
+                  onKeyDown={(event) => event.key === "Enter" && addMcpServer()}
+                  placeholder="wss://your-server.example/mcp"
+                  className="flex-1 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-300/25"
+                />
+                <button onClick={addMcpServer} className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-cyan-100 transition hover:border-cyan-300/40">
+                  <Plus size={16} />
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-white/10">
-          <button onClick={onClose} className="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm transition-colors">
+        <div className="flex gap-3 border-t border-white/10 px-6 py-5">
+          <button onClick={onClose} className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:border-white/20 hover:text-white">
             Annuler
           </button>
-          <button
-            onClick={() => { onSave(form); onClose(); }}
-            className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
-          >
+          <button onClick={() => { onSave(form); onClose(); }} className="flex-1 rounded-2xl border border-cyan-300/25 bg-cyan-400/12 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:border-cyan-300/40">
             Enregistrer
           </button>
         </div>

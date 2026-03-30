@@ -1,37 +1,15 @@
 import { NextResponse } from "next/server";
+import { createRealtimeSession } from "@/lib/server-tools";
 
 export async function POST() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "OPENAI_API_KEY not configured. Add it to .env.local" },
-      { status: 500 }
-    );
-  }
-
   try {
-    const res = await fetch("https://api.openai.com/v1/realtime/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-realtime-preview",
-        voice: "shimmer",
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      return NextResponse.json({ error: err }, { status: res.status });
-    }
-
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err) {
+    const session = await createRealtimeSession();
+    return NextResponse.json(session);
+  } catch (error) {
     return NextResponse.json(
-      { error: String(err) },
+      {
+        error: error instanceof Error ? error.message : "Impossible de créer la session realtime",
+      },
       { status: 500 }
     );
   }

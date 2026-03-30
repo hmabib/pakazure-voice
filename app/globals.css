@@ -3,10 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --brand-dark: #0a0f1e;
-  --brand-navy: #1A3C6E;
-  --brand-blue: #2E6DB4;
-  --brand-light: #4A90D9;
+  --bg-0: #020617;
+  --bg-1: #071226;
+  --bg-2: #0b1731;
+  --pak-blue: #2e6db4;
+  --pak-cyan: #4fe2ff;
+  --pak-white: #eef7ff;
 }
 
 * {
@@ -15,93 +17,179 @@
 
 html,
 body {
-  background-color: var(--brand-dark);
-  color: white;
-  overflow-x: hidden;
+  min-height: 100%;
+  background: var(--bg-0);
+  color: var(--pak-white);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
-::-webkit-scrollbar-thumb { background: var(--brand-blue); border-radius: 4px; }
-
-/* Orb animations */
-.orb-idle { animation: orb-idle 4s ease-in-out infinite; }
-.orb-listening { animation: orb-listening 1.5s ease-in-out infinite; }
-.orb-thinking { animation: orb-thinking 2s linear infinite; }
-.orb-speaking { animation: orb-speaking 0.8s ease-in-out infinite; }
-
-@keyframes orb-idle {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.05); opacity: 1; }
-}
-@keyframes orb-listening {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(74,144,217,0.4); }
-  50% { transform: scale(1.12); box-shadow: 0 0 70px rgba(74,144,217,0.9); }
-}
-@keyframes orb-thinking {
-  0% { filter: hue-rotate(0deg) brightness(1); }
-  33% { filter: hue-rotate(20deg) brightness(1.3); }
-  66% { filter: hue-rotate(-10deg) brightness(0.9); }
-  100% { filter: hue-rotate(0deg) brightness(1); }
-}
-@keyframes orb-speaking {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(46,109,180,0.6); }
-  25% { transform: scale(1.18); box-shadow: 0 0 90px rgba(46,109,180,1); }
-  75% { transform: scale(0.94); box-shadow: 0 0 20px rgba(46,109,180,0.3); }
+body {
+  margin: 0;
+  overflow: hidden;
 }
 
-/* Pulse rings */
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(1.8); opacity: 0; }
-}
-.pulse-ring {
-  animation: pulse-ring 2s ease-out infinite;
-}
-.pulse-ring-delay {
-  animation: pulse-ring 2s ease-out 0.7s infinite;
+button,
+input,
+textarea {
+  font: inherit;
 }
 
-/* Transcript items */
-@keyframes fade-in-up {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-.fade-in-up { animation: fade-in-up 0.3s ease-out; }
 
-/* Panel slide */
-@keyframes slide-in-left {
-  0% { transform: translateX(-100%); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+::-webkit-scrollbar-track {
+  background: transparent;
 }
-.slide-in-left { animation: slide-in-left 0.25s ease-out; }
 
-/* Glass morphism */
-.glass {
-  background: rgba(26, 60, 110, 0.15);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(46, 109, 180, 0.2);
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(79, 226, 255, 0.4), rgba(46, 109, 180, 0.6));
 }
-.glass-dark {
-  background: rgba(10, 15, 30, 0.8);
-  backdrop-filter: blur(16px);
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(79, 226, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79, 226, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.circuit-overlay {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(79, 226, 255, 0.12) 0, transparent 28%),
+    linear-gradient(90deg, transparent 24%, rgba(79, 226, 255, 0.06) 25%, transparent 26%),
+    linear-gradient(transparent 24%, rgba(79, 226, 255, 0.05) 25%, transparent 26%);
+  background-size: 100% 100%, 160px 160px, 160px 160px;
+}
+
+.panel-shell {
+  position: relative;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(8, 15, 33, 0.82), rgba(5, 10, 24, 0.92));
+  backdrop-filter: blur(22px);
+  border-radius: 2rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 80px rgba(2, 6, 23, 0.45);
 }
 
-/* Toggle switch */
-.toggle-switch {
-  @apply relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer;
-}
-.toggle-switch-enabled { @apply bg-blue-500; }
-.toggle-switch-disabled { @apply bg-gray-600; }
-.toggle-thumb {
-  @apply inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200;
+.panel-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(79, 226, 255, 0.08), transparent 28%, transparent 72%, rgba(46, 109, 180, 0.12));
 }
 
-/* Mic button ripple */
-@keyframes ripple {
-  0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.5); opacity: 0; }
+.avatar-shell::before {
+  content: "";
+  position: absolute;
+  inset: 7%;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 226, 255, 0.12);
+  box-shadow: 0 0 60px rgba(34, 211, 238, 0.08);
 }
-.mic-ripple { animation: ripple 1s ease-out infinite; }
+
+.avatar-core::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-fast {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.avatar-orbit-slow {
+  animation: spin-slow 24s linear infinite;
+}
+
+.avatar-orbit-fast {
+  animation: spin-fast 12s linear infinite;
+}
+
+.hud-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02) 0,
+    rgba(255, 255, 255, 0.02) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+}
+
+@keyframes visual-bar {
+  0%,
+  100% { transform: scaleY(0.45); }
+  50% { transform: scaleY(1.05); }
+}
+
+.visual-bar {
+  transform-origin: center bottom;
+  animation: visual-bar 0.9s ease-in-out infinite;
+}
+
+.visual-bar:nth-child(odd) {
+  animation-duration: 1.2s;
+}
+
+.visual-bar:nth-child(3n) {
+  animation-duration: 0.7s;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.25s ease-out forwards;
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.25s ease-out;
+}
+
+.viz-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(79, 226, 255, 0.04), transparent 22%, transparent 82%, rgba(79, 226, 255, 0.06));
+  pointer-events: none;
+}
+
+@media (max-width: 1279px) {
+  body {
+    overflow: auto;
+  }
+}

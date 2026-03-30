@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import clsx from "clsx";
+import { Bot, Trash2, User2, Wrench } from "lucide-react";
 import type { TranscriptItem } from "@/lib/types";
 
 interface Props {
@@ -18,62 +19,57 @@ export default function TranscriptPanel({ transcript, onClear }: Props) {
 
   if (transcript.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-600 text-sm italic px-4">
-        La conversation apparaîtra ici...
+      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-500">
+        Le flux conversationnel, les appels outils et les réponses assistant apparaîtront ici en temps réel.
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
-      {transcript.length > 0 && (
-        <button
-          onClick={onClear}
-          className="text-xs text-gray-600 hover:text-gray-400 transition-colors float-right"
-        >
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Transcript</p>
+          <p className="mt-1 text-sm text-slate-400">Historique live de la session</p>
+        </div>
+        <button onClick={onClear} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:border-red-300/20 hover:text-red-200">
+          <Trash2 size={14} />
           Effacer
         </button>
-      )}
-      {transcript.map((item) => (
-        <div
-          key={item.id}
-          className={clsx(
-            "fade-in-up flex",
-            item.role === "user" && "justify-end",
-            item.role === "assistant" && "justify-start",
-            item.role === "tool" && "justify-center"
-          )}
-        >
-          {item.role === "user" && (
-            <div className="max-w-[80%] px-4 py-2 rounded-2xl rounded-tr-sm text-sm bg-blue-600 text-white shadow-lg">
-              <p>{item.text}</p>
-              <p className="text-xs text-blue-200 mt-1 text-right">
-                {item.timestamp.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            </div>
-          )}
+      </div>
 
-          {item.role === "assistant" && (
-            <div className="max-w-[80%] px-4 py-2 rounded-2xl rounded-tl-sm text-sm glass text-gray-100 shadow-lg">
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-xs text-blue-400 font-medium">🐬 PAKAZURE</span>
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {transcript.map((item) => {
+          const isUser = item.role === "user";
+          const isAssistant = item.role === "assistant";
+          const isTool = item.role === "tool";
+
+          return (
+            <div key={item.id} className={clsx("fade-in-up flex", isUser ? "justify-end" : isTool ? "justify-center" : "justify-start")}>
+              <div
+                className={clsx(
+                  "max-w-[92%] rounded-2xl border px-4 py-3 shadow-[0_12px_30px_rgba(2,6,23,0.28)]",
+                  isUser && "border-blue-400/20 bg-blue-500/15 text-white",
+                  isAssistant && "border-cyan-300/15 bg-cyan-400/[0.06] text-slate-100",
+                  isTool && "w-full border-amber-300/10 bg-amber-400/[0.05] text-slate-200"
+                )}
+              >
+                <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.28em]">
+                  <span className="rounded-full border border-white/10 bg-slate-950/60 p-1.5">
+                    {isUser ? <User2 size={12} /> : isAssistant ? <Bot size={12} /> : <Wrench size={12} />}
+                  </span>
+                  <span className={clsx(isUser && "text-blue-100", isAssistant && "text-cyan-100", isTool && "text-amber-100")}>{isUser ? "Utilisateur" : isAssistant ? "Camara Boto" : item.toolName || "Tool"}</span>
+                  <span className="ml-auto text-slate-500">
+                    {item.timestamp.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                <p className={clsx("whitespace-pre-wrap break-words text-sm leading-relaxed", isTool && "font-mono text-[12px]")}>{item.text}</p>
               </div>
-              <p className="leading-relaxed">{item.text}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {item.timestamp.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-              </p>
             </div>
-          )}
-
-          {item.role === "tool" && (
-            <div className="max-w-[90%] px-3 py-1.5 rounded-lg text-xs bg-gray-800/60 border border-gray-700/50 text-gray-400 font-mono">
-              <span className="text-yellow-500/80">{item.toolName && `[${item.toolName}]`} </span>
-              <span className="break-all">{item.text.length > 120 ? item.text.slice(0, 120) + "..." : item.text}</span>
-            </div>
-          )}
-        </div>
-      ))}
-      <div ref={bottomRef} />
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 }

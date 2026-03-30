@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import type { SessionStatus, TranscriptItem, Settings } from "@/lib/types";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import type { SessionStatus, TranscriptItem, Settings, Tool } from "@/lib/types";
 import { executeToolCall } from "@/lib/toolHandlers";
 import { TOOL_DEFINITIONS } from "@/lib/tools";
 
-export function useRealtimeSession(settings: Settings) {
+export function useRealtimeSession(settings: Settings, tools: Tool[]) {
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -16,7 +16,13 @@ export function useRealtimeSession(settings: Settings) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const micTrackRef = useRef<MediaStreamTrack | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number>(0);
+
+  const enabledToolDefinitions = useMemo(() => {
+    const enabled = new Set(tools.filter((tool) => tool.enabled).map((tool) => tool.name));
+    return TOOL_DEFINITIONS.filter((tool) => enabled.has(tool.name));
+  }, [tools]);
 
   const addTranscript = useCallback((item: Omit<TranscriptItem, "id" | "timestamp">) => {
     setTranscript((prev) => [
@@ -34,7 +40,11 @@ export function useRealtimeSession(settings: Settings) {
   const handleServerEvent = useCallback(
     async (event: MessageEvent) => {
       let msg: Record<string, unknown>;
-      try { msg = JSON.parse(event.data as string); } catch { return; }
+      try {
+        msg = JSON.parse(event.data as string);
+      } catch {
+        return;
+      }
 
       const type = msg.type as string;
 
@@ -72,11 +82,15 @@ export function useRealtimeSession(settings: Settings) {
           const callId = msg.call_id as string;
           const fnName = msg.name as string;
           let args: Record<string, unknown> = {};
-          try { args = JSON.parse((msg.arguments as string) || "{}"); } catch { /* ignore */ }
+          try {
+            args = JSON.parse((msg.arguments as string) || "{}");
+          } catch {
+            args = {};
+          }
 
           addTranscript({
             role: "tool",
-            text: `🔧 ${fnName}(${JSON.stringify(args)})`,
+            text: `CALL ${fnName}(${JSON.stringify(args)})`,
             toolName: fnName,
           });
 
@@ -103,74 +117,84 @@ export function useRealtimeSession(settings: Settings) {
           setStatus("error");
           break;
         }
+        default:
+          break;
       }
     },
     [addTranscript, sendEvent]
   );
 
-  // Volume analyser
   useEffect(() => {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      audioContextRef.current?.close().catch(() => undefined);
     };
   }, []);
 
   const startVolumeAnalyser = useCallback((stream: MediaStream) => {
     try {
+      audioContextRef.current?.close().catch(() => undefined);
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       source.connect(analyser);
       analyserRef.current = analyser;
+      audioContextRef.current = ctx;
 
       const tick = () => {
         const data = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setVolume(avg / 128);
+        const avg = data.reduce((a, b) => a + b, 0) / Math.max(1, data.length);
+        setVolume(Math.min(1.2, avg / 110));
         animFrameRef.current = requestAnimationFrame(tick);
       };
       tick();
-    } catch { /* ignore */ }
+    } catch {
+      // ignore analyser failures
+    }
   }, []);
 
   const connect = useCallback(async () => {
     setStatus("connecting");
+    setIsMuted(false);
+
     try {
-      // 1. Get ephemeral session token
       const res = await fetch("/api/realtime/session", { method: "POST" });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: "Failed to get session token" }));
         throw new Error(err.error || "Failed to get session token");
       }
       const data = await res.json();
-      const ephemeralKey: string = data.client_secret?.value;
-      if (!ephemeralKey) throw new Error("No ephemeral key received");
+      const ephemeralKey: string | undefined = data.client_secret?.value;
+      if (!ephemeralKey) throw new Error("Aucune clé de session reçue");
 
-      // 2. Create peer connection
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      // 3. Audio output
       const audio = document.createElement("audio");
       audio.autoplay = true;
       audioRef.current = audio;
-      pc.ontrack = (e) => { audio.srcObject = e.streams[0]; };
+      pc.ontrack = (e) => {
+        audio.srcObject = e.streams[0];
+      };
 
-      // 4. Microphone input
-      const ms = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ms = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       const track = ms.getTracks()[0];
       micTrackRef.current = track;
-      pc.addTrack(track);
+      pc.addTrack(track, ms);
       startVolumeAnalyser(ms);
 
-      // 5. Data channel for events
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
       dc.onmessage = handleServerEvent;
       dc.onopen = () => {
-        // Configure session
         sendEvent({
           type: "session.update",
           session: {
@@ -184,28 +208,25 @@ export function useRealtimeSession(settings: Settings) {
               threshold: 0.5,
               prefix_padding_ms: 300,
             },
-            tools: TOOL_DEFINITIONS,
-            tool_choice: "auto",
+            tools: enabledToolDefinitions,
+            tool_choice: enabledToolDefinitions.length > 0 ? "auto" : "none",
           },
         });
       };
 
-      // 6. SDP offer/answer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpRes = await fetch(
-        "https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${ephemeralKey}`,
-            "Content-Type": "application/sdp",
-          },
-          body: offer.sdp,
-        }
-      );
-      if (!sdpRes.ok) throw new Error("SDP negotiation failed");
+      const sdpRes = await fetch("https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ephemeralKey}`,
+          "Content-Type": "application/sdp",
+        },
+        body: offer.sdp,
+      });
+      if (!sdpRes.ok) throw new Error("Échec de la négociation audio temps réel");
+
       const answer: RTCSessionDescriptionInit = {
         type: "answer",
         sdp: await sdpRes.text(),
@@ -221,14 +242,17 @@ export function useRealtimeSession(settings: Settings) {
       });
       setStatus("error");
     }
-  }, [settings, handleServerEvent, sendEvent, startVolumeAnalyser, addTranscript]);
+  }, [settings, handleServerEvent, sendEvent, startVolumeAnalyser, addTranscript, enabledToolDefinitions]);
 
   const disconnect = useCallback(() => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     dcRef.current?.close();
     pcRef.current?.close();
     micTrackRef.current?.stop();
-    if (audioRef.current) { audioRef.current.srcObject = null; }
+    if (audioRef.current) audioRef.current.srcObject = null;
+    analyserRef.current = null;
+    audioContextRef.current?.close().catch(() => undefined);
+    audioContextRef.current = null;
     pcRef.current = null;
     dcRef.current = null;
     micTrackRef.current = null;
@@ -238,8 +262,9 @@ export function useRealtimeSession(settings: Settings) {
 
   const toggleMute = useCallback(() => {
     if (micTrackRef.current) {
-      micTrackRef.current.enabled = isMuted;
-      setIsMuted(!isMuted);
+      const nextMuted = !isMuted;
+      micTrackRef.current.enabled = !nextMuted;
+      setIsMuted(nextMuted);
     }
   }, [isMuted]);
 

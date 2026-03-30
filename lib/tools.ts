@@ -49,6 +49,30 @@ export const TOOL_DEFINITIONS = [
     description: "Obtenir le statut en temps réel du Port Autonome de Kribi (PAK), Cameroun",
     parameters: { type: "object", properties: {}, required: [] },
   },
+  {
+    type: "function" as const,
+    name: "generate_gemini_dataviz",
+    description: "Générer une structure de visualisation de données avec Gemini à partir d'un prompt métier",
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "Brief ou besoin de data visualisation" },
+      },
+      required: ["prompt"],
+    },
+  },
+  {
+    type: "function" as const,
+    name: "query_softis",
+    description: "Interroger de manière sécurisée le backend Softis via une route serveur protégée",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Requête métier ou SQL compatible selon votre backend Softis" },
+      },
+      required: ["query"],
+    },
+  },
 ];
 
 export const DEFAULT_TOOLS: Tool[] = [
@@ -57,4 +81,6 @@ export const DEFAULT_TOOLS: Tool[] = [
   { name: "calculate", description: "Calcul mathématique", enabled: true, icon: "🧮" },
   { name: "search_web", description: "Recherche web", enabled: true, icon: "🔍" },
   { name: "get_port_status", description: "Statut Port de Kribi", enabled: true, icon: "⚓" },
+  { name: "generate_gemini_dataviz", description: "Dataviz Gemini", enabled: true, icon: "📊" },
+  { name: "query_softis", description: "Requêtes Softis sécurisées", enabled: true, icon: "🗄️" },
 ];
