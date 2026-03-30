@@ -285,12 +285,6 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
             },
             tools: enabledToolDefinitions,
             tool_choice: enabledToolDefinitions.length > 0 ? "auto" : "none",
-            metadata: {
-              language: settings.language,
-              push_to_talk: settings.pushToTalk ? "enabled" : "disabled",
-              video_requested: settings.realtimeVideo.enabled ? "true" : "false",
-              video_mode: resolvedVideoMode,
-            },
           },
         });
 
