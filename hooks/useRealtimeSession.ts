@@ -288,6 +288,13 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
           },
         });
 
+        sendEvent({
+          type: "response.create",
+          response: {
+            modalities: ["audio", "text"],
+          },
+        });
+
         if (settings.realtimeVideo.enabled) {
           console.info(
             resolvedVideoMode === "camera-feed"
