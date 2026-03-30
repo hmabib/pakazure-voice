@@ -139,12 +139,7 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
             type: "conversation.item.create",
             item: { type: "function_call_output", call_id: callId, output: result },
           });
-          sendEvent({
-            type: "response.create",
-            response: {
-              output_modalities: ["audio"],
-            },
-          });
+          sendEvent({ type: "response.create" });
           break;
         }
         case "error": {
@@ -283,30 +278,20 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
       dcRef.current = dc;
       dc.onmessage = handleServerEvent;
 
-      const configureSession = () => {
+      dc.onopen = () => {
         if (dc.readyState !== "open") return;
 
         sendEvent({
           type: "session.update",
           session: {
-            type: "realtime",
-            model: data.model || "gpt-realtime",
             instructions: settings.systemPrompt,
-            output_modalities: ["audio"],
-            audio: {
-              input: {
-                turn_detection: {
-                  type: "server_vad",
-                  silence_duration_ms: 600,
-                  threshold: 0.5,
-                  prefix_padding_ms: 300,
-                  create_response: true,
-                },
-                transcription: { model: "whisper-1" },
-              },
-              output: {
-                voice: settings.voice || data.voice || "marin",
-              },
+            voice: settings.voice || data.voice || "marin",
+            input_audio_transcription: { model: "whisper-1" },
+            turn_detection: {
+              type: "server_vad",
+              silence_duration_ms: 600,
+              threshold: 0.5,
+              prefix_padding_ms: 300,
             },
             tools: enabledToolDefinitions,
             tool_choice: enabledToolDefinitions.length > 0 ? "auto" : "none",
@@ -314,12 +299,10 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         });
       };
 
-      dc.onopen = configureSession;
-
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpRes = await fetch("https://api.openai.com/v1/realtime/calls", {
+      const sdpRes = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(data.model || "gpt-realtime")}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${ephemeralKey}`,
@@ -334,7 +317,6 @@ export function useRealtimeSession(settings: Settings, tools: Tool[]) {
         sdp: await sdpRes.text(),
       };
       await pc.setRemoteDescription(answer);
-      configureSession();
       setStatus("connected");
     } catch (err) {
       console.error("Connection error:", err);
