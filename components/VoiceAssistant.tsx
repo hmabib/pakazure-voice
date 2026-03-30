@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   Activity,
-  Bot,
   ChevronRight,
   LineChart,
   Menu,
@@ -49,9 +48,12 @@ const quickPrompts = [
 function PakazureMark() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,0.12)]">
-        <Bot size={19} className="text-cyan-200" />
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="https://static.wixstatic.com/media/ccfac3_e82eb7f271cb42709c78ae85c0aaf01f~mv2.jpg/v1/fill/w_144,h_122,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/PAKAZURE_JPG.jpg"
+        alt="PAKAZURE"
+        className="h-11 w-11 rounded-2xl border border-cyan-300/20 object-cover shadow-[0_0_24px_rgba(34,211,238,0.12)]"
+      />
       <div>
         <p className="text-[11px] uppercase tracking-[0.42em] text-cyan-200/75">PAKAZURE Voice Ops</p>
         <h1 className="mt-1 text-lg font-semibold text-white sm:text-xl">Camara Boto</h1>
@@ -100,7 +102,7 @@ export default function VoiceAssistant() {
     ...DEFAULT_SETTINGS,
     voice: "echo",
     systemPrompt:
-      "Tu es Camara Boto, la voix opérationnelle de PAKAZURE pour le Port Autonome de Kribi. Tu réponds toujours en français, de manière naturelle, directe, calme et utile. Va droit au point, puis développe seulement si nécessaire. Si l'utilisateur pose une question sur les statistiques portuaires, utilise les informations disponibles du panneau stats portuaires et des routes API associées pour répondre naturellement. Si l'utilisateur évoque Softis, utilise query_softis. Si l'utilisateur demande une visualisation, utilise generate_gemini_dataviz puis décris clairement ce qu'elle montre. Si une recherche web est utile, utilise search_web. Ton rôle est d'aider à décider, expliquer et synthétiser sans jargon inutile.",
+      "Tu es Camara Boto, la voix opérationnelle de PAKAZURE pour le Port Autonome de Kribi. Tu réponds toujours en français, de manière naturelle, directe, calme et utile. Va droit au point, puis développe seulement si nécessaire. Si l'utilisateur pose une question sur les statistiques portuaires, utilise les informations disponibles des routes API stats portuaires pour répondre naturellement. Si l'utilisateur évoque Softis, utilise query_softis. Si l'utilisateur demande une visualisation, utilise generate_gemini_dataviz puis décris clairement ce qu'elle montre. Si une recherche web est utile, utilise search_web. Ton rôle est d'aider à décider, expliquer et synthétiser sans jargon inutile.",
   });
   const [tools, setTools] = useState<Tool[]>(DEFAULT_TOOLS);
   const [showTools, setShowTools] = useState(false);
@@ -108,6 +110,7 @@ export default function VoiceAssistant() {
   const [showCommandCenter, setShowCommandCenter] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
+  const [showPortStats, setShowPortStats] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [vizLoading, setVizLoading] = useState(false);
   const [vizData, setVizData] = useState<Record<string, unknown> | null>(null);
@@ -121,7 +124,6 @@ export default function VoiceAssistant() {
   const isConnected = ["connected", "listening", "thinking", "speaking"].includes(status);
   const isConnecting = status === "connecting";
   const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.idle;
-  const enabledTools = tools.filter((tool) => tool.enabled).length;
   const lastTranscript = transcript.at(-1);
 
   const metrics = useMemo(
@@ -226,6 +228,7 @@ export default function VoiceAssistant() {
         setShowCommandCenter(false);
         setShowTranscript(false);
         setShowInsights(false);
+        setShowPortStats(false);
       }
     };
 
@@ -253,6 +256,13 @@ export default function VoiceAssistant() {
               <Waves size={17} />
             </button>
             <button
+              onClick={() => setShowPortStats(true)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
+              aria-label="Ouvrir les stats portuaires"
+            >
+              <LineChart size={17} />
+            </button>
+            <button
               onClick={() => setShowCommandCenter(true)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:border-cyan-300/35"
               aria-label="Ouvrir le centre de commande"
@@ -269,168 +279,104 @@ export default function VoiceAssistant() {
           </div>
         </header>
 
-        <main className="grid flex-1 gap-6 py-6 sm:py-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-          <section className="panel-shell relative flex w-full flex-col items-center px-6 py-8 text-center sm:px-10 sm:py-10 lg:px-16 lg:py-12">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent" />
-
-            <div className="mb-4 flex flex-wrap items-center justify-center gap-3">
-              <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-[11px] uppercase tracking-[0.32em] text-cyan-100">
-                Expérience vocale minimaliste
-              </span>
-              <span className={clsx("rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.28em]", statusInfo.chip)}>{status}</span>
-            </div>
-
-            <h2 className="max-w-3xl text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-[2.8rem]">
-              Un cockpit plus calme, centré sur l’écoute et la décision.
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">{statusInfo.text}</p>
-
-            <div className="my-8 flex w-full justify-center sm:my-10">
-              <CamaraBotoAvatar
-                status={status}
-                volume={volume}
-                avatarSettings={settings.avatar}
-                transcriptText={settings.avatar.showTranscriptBelowAvatar ? lastTranscript?.text : undefined}
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={handlePrimaryAction}
-                disabled={isConnecting}
-                className="inline-flex min-w-[250px] items-center justify-center gap-3 rounded-2xl border border-cyan-300/30 bg-cyan-400/15 px-8 py-4 text-sm font-medium text-cyan-50 transition hover:border-cyan-300/50 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {["idle", "disconnected", "error"].includes(status) ? <Mic size={18} /> : isMuted ? <MicOff size={18} /> : <Sparkles size={18} />}
-                {["idle", "disconnected", "error"].includes(status)
-                  ? "Démarrer la session"
-                  : isMuted
-                    ? "Réactiver le micro"
-                    : "Lancer le briefing prioritaire"}
-              </button>
-
-              <button
-                onClick={() => setShowCommandCenter(true)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
-              >
-                <ChevronRight size={16} />
-                Plus d’options
-              </button>
-            </div>
-
-            <div className="mt-8 grid w-full max-w-3xl gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))]">
-              {metrics.map((metric) => (
-                <div key={metric.label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 text-left">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">{metric.label}</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{metric.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 w-full max-w-3xl rounded-[1.6rem] border border-white/8 bg-slate-950/40 p-3 sm:p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex-1 rounded-2xl border border-white/8 bg-slate-950/55 p-2">
-                  <div className="flex gap-2">
-                    <input
-                      ref={textRef}
-                      type="text"
-                      value={textInput}
-                      onChange={(event) => setTextInput(event.target.value)}
-                      onKeyDown={(event) => event.key === "Enter" && handleSendText()}
-                      placeholder="Envoyer une instruction texte à la session active"
-                      className="flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
-                    />
-                    <button
-                      onClick={handleSendText}
-                      disabled={!textInput.trim() || !isConnected}
-                      className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-cyan-100 transition hover:border-cyan-300/40 disabled:opacity-30"
-                    >
-                      <Send size={16} />
-                    </button>
-                  </div>
+        <main className="flex flex-1 items-center justify-center">
+          <section className="w-full max-w-5xl panel-shell px-6 py-8 sm:px-10 sm:py-10">
+            <div className="grid gap-8 lg:grid-cols-[1fr_340px] lg:items-center">
+              <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+                <div className="mb-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                  {metrics.map((metric) => (
+                    <span key={metric.label} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-slate-300">
+                      {metric.label} · {metric.value}
+                    </span>
+                  ))}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 sm:justify-end">
+                <h2 className="max-w-2xl text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                  Camara Boto écoute, répond et guide l’action.
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">{statusInfo.text}</p>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={handlePrimaryAction}
+                    disabled={isConnecting}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/12 px-6 py-4 text-sm font-medium text-cyan-50 transition hover:border-cyan-300/45 hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    {isConnected && !isMuted ? <Mic size={18} /> : <MicOff size={18} />}
+                    {["idle", "disconnected", "error"].includes(status)
+                      ? "Démarrer la session"
+                      : isMuted
+                      ? "Réactiver le micro"
+                      : "Demander un briefing"}
+                  </button>
+
                   {isConnected && (
                     <button
-                      onClick={toggleMute}
-                      className={clsx(
-                        "inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm transition",
-                        isMuted
-                          ? "border-red-300/20 bg-red-400/10 text-red-100"
-                          : "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
-                      )}
+                      onClick={disconnect}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-slate-200 transition hover:border-red-300/20 hover:text-red-100"
                     >
-                      {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
-                      {isMuted ? "Micro coupé" : "Micro actif"}
+                      <PhoneOff size={18} />
+                      Arrêter
                     </button>
                   )}
-                  <button
-                    onClick={disconnect}
-                    disabled={!isConnected}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:border-red-300/20 hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <PhoneOff size={16} />
-                    Arrêter
-                  </button>
                 </div>
               </div>
-            </div>
 
-            {!settings.avatar.showTranscriptBelowAvatar && (
-              <div className="mt-5 max-w-2xl rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-left">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/70">Dernier signal</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  {lastTranscript?.text || "Aucun échange pour le moment. Lancez la session, puis utilisez la voix ou le champ texte."}
-                </p>
+              <div className="flex justify-center lg:justify-end">
+                <CamaraBotoAvatar
+                  status={status}
+                  volume={volume}
+                  avatarSettings={settings.avatar}
+                  transcriptText={lastTranscript?.text}
+                />
               </div>
-            )}
+            </div>
           </section>
-
-          <aside className="space-y-4 xl:sticky xl:top-6">
-            <PortStatsPanel data={portStats} loading={portStatsLoading} />
-          </aside>
         </main>
+
+        {isConnected && (
+          <div className="mt-4 w-full max-w-3xl self-center">
+            <div className="flex gap-2 rounded-2xl border border-white/8 bg-slate-950/55 p-2">
+              <input
+                ref={textRef}
+                type="text"
+                value={textInput}
+                onChange={(event) => setTextInput(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && handleSendText()}
+                placeholder="Ex: utilise Softis pour analyser les imports de la semaine"
+                className="flex-1 bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
+              />
+              <button
+                onClick={handleSendText}
+                disabled={!textInput.trim() || !isConnected}
+                className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-cyan-100 transition hover:border-cyan-300/40 disabled:opacity-30"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <SideSheet open={showCommandCenter} onClose={() => setShowCommandCenter(false)} title="Centre de commande" subtitle="Actions secondaires et fonctions avancées">
-        <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              onClick={() => queuePrompt("Prépare un briefing opérationnel priorisé du jour.")}
-              className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.04]"
-            >
-              <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-slate-900/80 p-2.5 text-cyan-200">
-                <Sparkles size={18} />
-              </div>
-              <p className="text-sm font-semibold text-white">Briefing prioritaire</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Prépare la synthèse d’exploitation du jour.</p>
-            </button>
+      {showTools && (
+        <>
+          <div className="fixed inset-0 z-30 bg-slate-950/40" onClick={() => setShowTools(false)} />
+          <ToolsPanel tools={tools} onToggle={toggleTool} onClose={() => setShowTools(false)} />
+        </>
+      )}
 
-            <button
-              onClick={() => runDataviz("Génère une dataviz PAKAZURE sur les KPI opérationnels prioritaires du jour.")}
-              className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.04]"
-            >
-              <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-slate-900/80 p-2.5 text-cyan-200">
-                <LineChart size={18} />
-              </div>
-              <p className="text-sm font-semibold text-white">Générer une dataviz</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Produit une visualisation KPI dans le panneau dédié.</p>
-            </button>
-          </div>
+      {showSettings && <SettingsModal settings={settings} onSave={setSettings} onClose={() => setShowSettings(false)} />}
 
-          <div className="rounded-[1.6rem] border border-white/8 bg-white/[0.03] p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">Prompts rapides</p>
-                <p className="mt-1 text-sm text-slate-400">Suggestions discrètes pour éviter la surcharge visuelle.</p>
-              </div>
-            </div>
-            <div className="grid gap-2">
+      <SideSheet open={showCommandCenter} onClose={() => setShowCommandCenter(false)} title="Centre de commande" subtitle="Prompts rapides, visualisations et accès assistant">
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-sm font-medium text-white">Prompts rapides</p>
+            <div className="mt-3 grid gap-2">
               {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => queuePrompt(prompt)}
-                  className="flex items-center justify-between rounded-2xl border border-white/8 bg-slate-950/45 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
+                  className="flex items-center justify-between rounded-2xl border border-white/8 bg-slate-950/40 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-white"
                 >
                   <span>{prompt}</span>
                   <ChevronRight size={15} className="text-slate-500" />
@@ -441,52 +387,43 @@ export default function VoiceAssistant() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <button
-              onClick={() => {
-                setShowCommandCenter(false);
-                setShowTranscript(true);
-              }}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+              onClick={() => runDataviz("Génère une dataviz PAKAZURE sur les KPI opérationnels prioritaires du jour.")}
+              className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20"
             >
-              <Activity size={16} className="mb-2 text-cyan-200" />
-              <div className="font-medium">Ouvrir le journal</div>
-              <div className="mt-1 text-slate-400">Consulter tout l’historique de session.</div>
+              <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-2.5 text-cyan-100">
+                <Sparkles size={18} />
+              </div>
+              <p className="text-sm font-semibold text-white">Générer une dataviz</p>
+              <p className="mt-2 text-sm text-slate-400">Créer une vue graphique et l’expliquer naturellement.</p>
             </button>
+
             <button
-              onClick={() => {
-                setShowCommandCenter(false);
-                setShowTools(true);
-              }}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm text-slate-200 transition hover:border-cyan-300/20 hover:text-white"
+              onClick={() => setShowTools(true)}
+              className="rounded-3xl border border-white/8 bg-white/[0.03] p-4 text-left transition hover:border-cyan-300/20"
             >
-              <Settings size={16} className="mb-2 text-cyan-200" />
-              <div className="font-medium">Gérer les outils</div>
-              <div className="mt-1 text-slate-400">{enabledTools} outil(s) actif(s) sur {tools.length}.</div>
+              <div className="mb-3 inline-flex rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-2.5 text-cyan-100">
+                <Activity size={18} />
+              </div>
+              <p className="text-sm font-semibold text-white">Outils & actions</p>
+              <p className="mt-2 text-sm text-slate-400">Activer Softis, recherche web et autres modules métier.</p>
             </button>
           </div>
         </div>
       </SideSheet>
 
-      <SideSheet open={showTranscript} onClose={() => setShowTranscript(false)} title="Journal de session" subtitle="Historique live des échanges et appels outils">
-        <div className="h-full min-h-[420px] overflow-hidden rounded-[1.6rem] border border-white/8 bg-slate-950/45">
+      <SideSheet open={showTranscript} onClose={() => setShowTranscript(false)} title="Journal de session" subtitle="Transcript vocal, texte et appels outils">
+        <div className="h-full overflow-hidden rounded-2xl border border-white/8 bg-slate-950/45">
           <TranscriptPanel transcript={transcript} onClear={clearTranscript} />
         </div>
       </SideSheet>
 
       <SideSheet open={showInsights} onClose={() => setShowInsights(false)} title="Visualisation & insights" subtitle="Lecture PAKAZURE des KPI générés à la demande">
-        <DatavizPanel
-          data={vizData as { title?: string; summary?: string; chartType?: string; series?: { label: string; value: number }[]; insight?: string } | null}
-          loading={vizLoading}
-        />
+        <DatavizPanel data={vizData as { title?: string; summary?: string; chartType?: string; series?: { label: string; value: number }[]; insight?: string } | null} loading={vizLoading} />
       </SideSheet>
 
-      {showTools && (
-        <>
-          <div className="fixed inset-0 z-30 bg-slate-950/40" onClick={() => setShowTools(false)} />
-          <ToolsPanel tools={tools} onToggle={toggleTool} onClose={() => setShowTools(false)} />
-        </>
-      )}
-
-      {showSettings && <SettingsModal settings={settings} onSave={setSettings} onClose={() => setShowSettings(false)} />}
+      <SideSheet open={showPortStats} onClose={() => setShowPortStats(false)} title="Stats portuaires" subtitle="Vue hebdo, annuelle et détails métier à la demande">
+        <PortStatsPanel data={portStats} loading={portStatsLoading} />
+      </SideSheet>
     </div>
   );
 }
