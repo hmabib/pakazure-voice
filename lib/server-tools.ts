@@ -241,9 +241,18 @@ export async function createRealtimeSession({ enableVideo = false }: { enableVid
   }
 
   const session = await response.json();
+  const secretValue =
+    session?.client_secret?.value ||
+    session?.client_secret ||
+    session?.secret ||
+    session?.value;
+
+  if (!secretValue) {
+    throw new Error("Réponse realtime invalide: aucun client secret exploitable renvoyé par OpenAI");
+  }
 
   return {
-    ...session,
+    client_secret: { value: secretValue },
     model,
     voice,
     capabilities: {
