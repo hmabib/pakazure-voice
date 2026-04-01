@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import { getPortDashboard, getPortDomain } from "@/lib/port-stats";
 
 function requireEnv(name: string): string {
@@ -211,43 +212,45 @@ export async function queryPortStats(query: string, domain?: string) {
 
 export async function createRealtimeSession({ enableVideo = false }: { enableVideo?: boolean } = {}) {
   const apiKey = requireEnv("OPENAI_API_KEY");
-  const model = process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview-2024-12-17";
-  const voice = process.env.OPENAI_REALTIME_VOICE || "shimmer";
+  const model = (process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview-2024-12-17") as
+    | "gpt-4o-realtime-preview"
+    | "gpt-4o-realtime-preview-2024-10-01"
+    | "gpt-4o-realtime-preview-2024-12-17"
+    | "gpt-4o-mini-realtime-preview"
+    | "gpt-4o-mini-realtime-preview-2024-12-17";
+  const voice = (process.env.OPENAI_REALTIME_VOICE || "shimmer") as
+    | "alloy"
+    | "ash"
+    | "ballad"
+    | "coral"
+    | "echo"
+    | "fable"
+    | "nova"
+    | "onyx"
+    | "sage"
+    | "shimmer"
+    | "verse";
 
+  const client = new OpenAI({ apiKey });
   const videoInputEnabled = process.env.OPENAI_REALTIME_ENABLE_VIDEO === "true";
-  const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+
+  const session = await client.beta.realtime.sessions.create({
+    model,
+    voice,
+    modalities: ["audio", "text"],
+    instructions:
+      "Tu es Camara Boto, voix opérationnelle de PAKAZURE. Réponds en français, de façon claire, utile et naturelle.",
+    input_audio_transcription: { model: "whisper-1", language: "fr" },
+    turn_detection: {
+      type: "server_vad",
+      silence_duration_ms: 600,
+      threshold: 0.5,
+      prefix_padding_ms: 300,
     },
-    body: JSON.stringify({
-      session: {
-        model,
-        voice,
-      },
-    }),
-    cache: "no-store",
-    signal: AbortSignal.timeout(15000),
   });
 
-  if (!response.ok) {
-    throw new Error(`Impossible de créer le client secret realtime (${response.status})`);
-  }
-
-  const session = await response.json();
-  const secretValue =
-    session?.client_secret?.value ||
-    session?.client_secret ||
-    session?.secret ||
-    session?.value;
-
-  if (!secretValue) {
-    throw new Error("Réponse realtime invalide: aucun client secret exploitable renvoyé par OpenAI");
-  }
-
   return {
-    client_secret: { value: secretValue },
+    client_secret: session.client_secret,
     model,
     voice,
     capabilities: {
@@ -255,7 +258,7 @@ export async function createRealtimeSession({ enableVideo = false }: { enableVid
       videoMode: enableVideo && videoInputEnabled ? "camera-feed" : "architecture-only",
       fallbackReason:
         enableVideo && !videoInputEnabled
-          ? "Support webcam realtime non confirmé côté modèle/session. L’UI, le state local et la négociation serveur sont préparés, mais l’injection vidéo au modèle reste désactivée tant que OPENAI_REALTIME_ENABLE_VIDEO n’est pas explicitement activé."
+          ? "Support webcam realtime non confirmé côté modèle/session."
           : undefined,
     },
   };
